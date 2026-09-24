@@ -1,8 +1,6 @@
 # Trip-Pilot
 
-# Ask the 2026 Policy Address (RAG teaching project)
-
-Open **GUIDE.html** in your browser for setup steps, how the code works, and exercises.
+TripPilot is an agentic AI corporate travel planner that autonomously creates, manages and adapts business trip itineraries while ensuring compliance with corporate policies and budget constraints. 
 
 Quick start on Windows, in this folder:
 
