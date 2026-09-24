@@ -9,9 +9,10 @@ Quick start on Windows, in this folder:
     py -m venv .venv
     .venv\Scripts\python -m pip install -r requirements.txt
 
+## Project structure
 
-trippilot/
-│
+```text
+Trip-Pilot/
 ├── README.md
 ├── requirements.txt
 ├── .env
@@ -105,3 +106,4 @@ trippilot/
     ├── architecture.md
     ├── api_design.md
     └── sequence_diagrams.md
+```
