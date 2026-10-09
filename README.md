@@ -107,3 +107,5 @@ Trip-Pilot/
 ```
 ##Reference
 [TripPilot_Corporate_Travel_Policy_v2.docx](https://github.com/user-attachments/files/32784763/TripPilot_Corporate_Travel_Policy_v2.docx)
+[Division of labor.docx](https://github.com/user-attachments/files/33254831/Division.of.labor.docx)
+
