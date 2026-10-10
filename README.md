@@ -3,9 +3,12 @@
 TripPilot is an agentic AI corporate travel planner that autonomously creates, manages and adapts business trip itineraries while ensuring compliance with corporate policies and budget constraints. 
 
 Quick start on Windows, in this folder:
-
-    py -m venv .venv
-    .venv\Scripts\python -m pip install -r requirements.txt
+    for mac:
+    python3 -m venv .venv && source .venv/bin/activate 
+    foc windows:
+    python -m venv .venv && source .venv/bin/activate
+    pip install -r requirements.txt
+    python app.py
 
 ## Project structure
 
