@@ -138,3 +138,118 @@ def test_no_policy_decisions_embedded():
     for row in hotels()["hotels"]:
         assert "policy_compliant" not in row
         assert "approval_required" not in row
+
+
+@pytest.mark.parametrize("scenario", [None, [], {}, 1, True])
+def test_invalid_scenario_types_raise_value_error(scenario):
+    with pytest.raises(ValueError, match="Unsupported mock hotel scenario"):
+        HotelSearchTool(mock_scenario=scenario)
+
+
+@pytest.mark.parametrize("scenario", ["standard", "price_spike"])
+def test_pricing_independent_of_caller_decimal_context(scenario):
+    from decimal import Inexact, ROUND_DOWN, Rounded, localcontext
+    tool = HotelSearchTool(mock_scenario=scenario)
+    expected = tool.search_hotels("Singapore", "2030-11-15", "2030-12-15", guests=32, rooms=8)
+    with localcontext() as context:
+        context.prec = 4
+        context.rounding = ROUND_DOWN
+        context.traps[Inexact] = True
+        context.traps[Rounded] = True
+        before = context.copy()
+        actual = tool.search_hotels("Singapore", "2030-11-15", "2030-12-15", guests=32, rooms=8)
+        assert context.prec == before.prec
+        assert context.rounding == before.rounding
+        assert context.traps == before.traps
+        assert context.flags == before.flags
+    expected.pop("retrieved_at")
+    actual.pop("retrieved_at")
+    assert actual == expected
+    expected_totals = {
+        "standard": {"001": "38376.00", "002": "30456.00", "003": "54216.00"},
+        "price_spike": {"001": "57516.00", "002": "45636.00", "003": "81276.00"},
+    }
+    for hotel in actual["hotels"]:
+        assert hotel["pricing"]["total"] == expected_totals[scenario][hotel["hotel_id"][-3:]]
+
+
+@pytest.mark.parametrize("city,currency", [
+    ("Singapore, SG", "SGD"), ("Hong Kong, HK", "HKD"),
+    ("London, GB", "GBP"), ("New York, US", "USD"),
+])
+def test_price_spike_amounts_currency_and_provenance(city, currency):
+    first = HotelSearchTool(mock_scenario="price_spike").search_hotels(city, "2030-11-15", "2030-11-16")
+    second = HotelSearchTool(mock_scenario="price_spike").search_hotels(city, "2030-11-15", "2030-11-16")
+    first.pop("retrieved_at")
+    second.pop("retrieved_at")
+    assert first == second
+    expected = {
+        "001": {"room_nightly_rate": "217.50", "subtotal": "217.50", "taxes": "21.75", "fees": "12.00", "total": "251.25"},
+        "002": {"room_nightly_rate": "172.50", "subtotal": "172.50", "taxes": "17.25", "fees": "12.00", "total": "201.75"},
+        "003": {"room_nightly_rate": "307.50", "subtotal": "307.50", "taxes": "30.75", "fees": "12.00", "total": "350.25"},
+    }
+    assert first["data_mode"] == first["provider"] == "mock"
+    for hotel in first["hotels"]:
+        pricing = hotel["pricing"]
+        assert pricing["currency"] == first["currency"] == currency
+        assert pricing["taxes_are_simulated"] is True
+        for key, value in expected[hotel["hotel_id"][-3:]].items():
+            assert pricing[key] == value
+    json.dumps(first, allow_nan=False)
+
+
+@pytest.mark.parametrize("check_in,check_out,nights", [
+    ("2032-02-28", "2032-03-01", 2),
+    ("2030-12-31", "2031-01-01", 1),
+    ("2030-11-15", "2030-12-15", 30),
+])
+def test_exclusive_checkout_calendar_boundaries(check_in, check_out, nights):
+    result = HotelSearchTool().search_hotels("London", check_in, check_out)
+    assert result["nights"] == nights
+    assert all(hotel["pricing"]["night_count"] == nights for hotel in result["hotels"])
+
+
+def test_money_half_up_rounding():
+    from tools.hotel_search import _money
+    assert _money(Decimal("1.005")) == "1.01"
+    assert _money(Decimal("1.004")) == "1.00"
+
+
+def test_c1_flight_service_contract_preserved(monkeypatch):
+    from services.flight_service import FlightService
+    post = Mock()
+    post.return_value.json.return_value = {"data": {"id": "request-id"}}
+    get = Mock()
+    get.return_value.json.return_value = {"data": [
+        {"owner": {"name": "Sample Airline"}, "total_amount": str(i), "total_currency": "HKD"}
+        for i in range(6)
+    ]}
+    monkeypatch.setattr(requests, "post", post)
+    monkeypatch.setattr(requests, "get", get)
+    result = FlightService().get_flights("HKG", "SIN", "2030-11-15")
+    assert len(result) == 5
+    assert result[0] == {"airline": "Sample Airline", "price": "0", "currency": "HKD"}
+    assert post.call_args.kwargs["json"]["data"]["slices"] == [
+        {"origin": "HKG", "destination": "SIN", "departure_date": "2030-11-15"}]
+    assert get.call_args.kwargs["params"] == {"offer_request_id": "request-id"}
+
+
+def test_hotel_failure_does_not_replace_trip_agent_result():
+    from agents.trip_agent import TripAgent
+    agent = TripAgent.__new__(TripAgent)
+    requirements = {"origin": "HKG", "destination": "SIN", "departure_date": "2030-11-15"}
+    agent.extract_trip_details = Mock(return_value=requirements)
+    agent.flight_service = Mock()
+    agent.flight_service.get_flights.return_value = [{"airline": "Sample Airline"}]
+    agent.recommend_flights = Mock(return_value="Recommended flight")
+    result = agent.run("Trip request")
+    assert set(result) == {"requirements", "flights", "recommendation", "agent_steps"}
+    before = dict(result)
+    try:
+        result["hotels"] = HotelSearchTool(mock_scenario="provider_error").search_hotels(
+            "Singapore", "2030-11-16", "2030-11-18")
+    except (HotelError, ValueError) as exc:
+        result["hotels"] = {"status": "unavailable", "data_mode": "mock", "provider": "mock",
+                            "error_code": exc.code if isinstance(exc, HotelError) else "invalid_input"}
+    assert all(result[key] == value for key, value in before.items())
+    assert result["hotels"]["error_code"] == "provider_error"

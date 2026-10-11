@@ -4,7 +4,7 @@ Matches C1/C3's synchronous, JSON-safe Python tool interface. The module is
 independent of an LLM and does not evaluate corporate policy or place bookings.
 """
 from datetime import date, datetime, timezone
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Context, Decimal, ROUND_HALF_UP, localcontext
 import re
 
 
@@ -92,7 +92,7 @@ class HotelSearchTool:
     def __init__(self, provider="mock", *, mock_scenario="standard"):
         if provider != "mock":
             raise ValueError("Only the mock hotel provider is implemented; live provider is not available")
-        if mock_scenario not in {"standard", "fully_booked", "price_spike", "provider_error"}:
+        if not isinstance(mock_scenario, str) or mock_scenario not in {"standard", "fully_booked", "price_spike", "provider_error"}:
             raise ValueError("Unsupported mock hotel scenario")
         self.provider = provider
         self.mock_scenario = mock_scenario
@@ -118,42 +118,44 @@ class HotelSearchTool:
 
         hotels = []
         if self.mock_scenario != "fully_booked":
-            for suffix, title, tier, preferred, amenities, cancellation, price, lat_offset, lon_offset in MOCK_HOTELS:
-                rate = Decimal(price)
-                if self.mock_scenario == "price_spike":
-                    rate *= Decimal("1.50")
-                rate = rate.quantize(TWOPLACES, rounding=ROUND_HALF_UP)
-                subtotal = rate * rooms * nights
-                taxes = (subtotal * MOCK_TAX_RATE).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
-                fees = MOCK_FEE_PER_ROOM_PER_STAY * rooms
-                total = subtotal + taxes + fees
-                hotels.append({
-                    "hotel_id": f"TP-MOCK-{country}-{suffix}",
-                    "name": title,
-                    "city": name,
-                    "country_code": country,
-                    "location": {"latitude": round(latitude + float(lat_offset), 6),
-                                 "longitude": round(longitude + float(lon_offset), 6),
-                                 "coordinates_are_synthetic": True},
-                    "hotel_tier": tier,
-                    "preferred_supplier": preferred,
-                    "amenities": list(amenities),
-                    "cancellation_policy": cancellation,
-                    "availability_status": "simulated_available",
-                    "booking_url": None,
-                    "pricing": {
-                        "currency": currency,
-                        "room_nightly_rate": _money(rate),
-                        "room_count": rooms,
-                        "night_count": nights,
-                        "subtotal": _money(subtotal),
-                        "taxes": _money(taxes),
-                        "fees": _money(fees),
-                        "total": _money(total),
-                        "taxes_are_simulated": True,
-                    },
-                })
-            hotels.sort(key=lambda row: (Decimal(row["pricing"]["total"]), row["hotel_id"]))
+            # Pricing must not inherit another tool's precision, rounding or traps.
+            with localcontext(Context(prec=28, rounding=ROUND_HALF_UP)):
+                for suffix, title, tier, preferred, amenities, cancellation, price, lat_offset, lon_offset in MOCK_HOTELS:
+                    rate = Decimal(price)
+                    if self.mock_scenario == "price_spike":
+                        rate *= Decimal("1.50")
+                    rate = rate.quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+                    subtotal = rate * rooms * nights
+                    taxes = (subtotal * MOCK_TAX_RATE).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+                    fees = MOCK_FEE_PER_ROOM_PER_STAY * rooms
+                    total = subtotal + taxes + fees
+                    hotels.append({
+                        "hotel_id": f"TP-MOCK-{country}-{suffix}",
+                        "name": title,
+                        "city": name,
+                        "country_code": country,
+                        "location": {"latitude": round(latitude + float(lat_offset), 6),
+                                     "longitude": round(longitude + float(lon_offset), 6),
+                                     "coordinates_are_synthetic": True},
+                        "hotel_tier": tier,
+                        "preferred_supplier": preferred,
+                        "amenities": list(amenities),
+                        "cancellation_policy": cancellation,
+                        "availability_status": "simulated_available",
+                        "booking_url": None,
+                        "pricing": {
+                            "currency": currency,
+                            "room_nightly_rate": _money(rate),
+                            "room_count": rooms,
+                            "night_count": nights,
+                            "subtotal": _money(subtotal),
+                            "taxes": _money(taxes),
+                            "fees": _money(fees),
+                            "total": _money(total),
+                            "taxes_are_simulated": True,
+                        },
+                    })
+                hotels.sort(key=lambda row: (Decimal(row["pricing"]["total"]), row["hotel_id"]))
 
         return {
             "location": name,

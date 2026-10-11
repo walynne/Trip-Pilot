@@ -41,3 +41,53 @@ python -m pytest -q tests/test_hotel_search.py
 ```
 
 Integration into `TripAgent`, real API, FX conversion, policy checking, ranking and actual bookings are excluded from this starter deliverable.
+
+## Pricing and provenance contract
+
+- Night count is the difference between the two local calendar dates. Check-out
+  is excluded, including leap days and year/DST transitions; no timestamps are inferred.
+- Rates are per room per night. All rooms use the same sample rate; requested
+  guests do not add per-person charges. The mock allows unused rooms if guests
+  are fewer than rooms; it does not allocate guests or report real room inventory.
+- `standard` uses fixed sample rates; `price_spike` multiplies each by exactly 1.50.
+- Synthetic subtotal = rounded nightly rate × rooms × nights.
+- Synthetic taxes = subtotal × 0.10, rounded to cents using ROUND_HALF_UP.
+  Fees are 12.00 per room per stay, not per night. The demo tax base excludes fees.
+- Total = subtotal + rounded taxes + fees. Every amount is a two-decimal string.
+  The tool uses a private Decimal context (precision 28), independent of callers.
+- Offer currencies match the response currency. These numbers are independent
+  fixtures in SGD/HKD/GBP/USD, not converted quotes or FX-equivalent amounts.
+- `fully_booked` returns `no_results` and an empty hotel list; this is simulated,
+  not evidence about actual availability. `provider_error` raises `HotelError`.
+- Retain the response envelope (`provider`, `data_mode`, scenario and attribution)
+  when displaying or forwarding offers. Do not present synthetic rates as verified
+  prices, synthetic taxes as official rates, or preferred-supplier fixtures as
+  actual approved-supplier evidence. `taxes_are_simulated` is always true.
+- Person B receives candidate attributes only. Corporate policy decisions must
+  come from policy rules and their provenance; C2 emits no compliance/approval verdict.
+
+## Optional Person A composition and failure isolation
+
+```python
+result = trip_agent.run(user_message)  # existing C1 response stays intact
+try:
+    result["hotels"] = HotelSearchTool().search_hotels(
+        destination_city, local_check_in, local_check_out, guests=guests, rooms=rooms
+    )
+except (HotelError, ValueError) as exc:
+    result["hotels"] = {
+        "status": "unavailable", "provider": "mock", "data_mode": "mock",
+        "error_code": exc.code if isinstance(exc, HotelError) else "invalid_input",
+        "message": str(exc),
+    }
+```
+
+This is a handoff example, not a change to TripAgent. C3 remains independently
+callable and optional; neither tool needs the other to be merged. Actual Person A/B
+application wiring and policy evaluation remain outstanding team integration work.
+
+PR CI independently runs the full available suite on Python 3.12, with no API
+credentials and without importing C3. Regression tests include pricing context,
+invalid configuration, exact sample amounts, currency/provenance, calendar bounds,
+C1 response compatibility and hotel-failure isolation. Only pytest, requests,
+openai and python-dotenv are installed; the latter two support C1 import checks.
