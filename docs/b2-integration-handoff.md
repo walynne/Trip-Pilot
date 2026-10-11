@@ -116,5 +116,5 @@ Validation on the approved local version 2.0 baseline: **26/26 cases passed at t
 - This is the retrieval stage of RAG. Generation and semantic embeddings are not implemented.
 - Word body paragraphs and simple rectangular tables are supported; headings use `Heading1`–`Heading6`. Headers, footers, comments, footnotes, images and rendered page layout are outside this loader's evidence contract. Overlong individual paragraphs are retained whole; the 1,800-character paragraph grouping target is not a hard token budget.
 - The DOCX and evaluation artifacts stay local. A fresh clone needs an authorized local baseline; B2 initialization fails clearly if it is absent.
-- Integrating this branch with C2/C3 is a separate team step. Their feature branches have not been merged here to satisfy B2.
+- C2 from main is integrated into this branch and its hotel tests run alongside B2. C3 integration remains a separate team step. TripAgent orchestration and B3 policy evaluation are still unimplemented by B2.
 - The pre-existing tracked `env.txt` remains an owner security issue. Do not inspect or publish its credential. Rotate/revoke exposed credentials, review usage, remove unsafe tracking/configuration and address historical exposure. Neither adding ignore rules nor this B2 change remediates earlier public exposure.
