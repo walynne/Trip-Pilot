@@ -147,16 +147,16 @@ requests are rejected; historical forecasts are outside C3 scope.
 [Open-Meteo forecast documentation](https://open-meteo.com/en/docs) specifies
 `/v1/forecast` and up to 16 forecast days, although availability varies by model
 and variable. [Geocoding](https://open-meteo.com/en/docs/geocoding-api) resolves
-city names to coordinates and an IANA timezone. C3 uses the first result and
-passes that timezone explicitly to the daily forecast request. Search with a
-country/admin qualifier to reduce ambiguity (for example `London, UK`); IATA
+city names to coordinates and an IANA timezone. C3 uses the first matching result and
+passes that timezone explicitly to the daily forecast request. Search with an ISO two-letter country qualifier (for example `London, GB`),
+or an exact country/admin name; IATA
 airport codes are not supported as destination names. Returned dates must match
 the complete requested local calendar range. Open-Meteo currently applies a
 fixed timezone offset across a range spanning a DST transition; daily calendar
 dates are retained, and no arrival timestamps are inferred.
 
 Requested daily variables: `temperature_2m_max`, `temperature_2m_min`,
-`precipitation_probability_max`, `wind_speed_10m_max`, `weather_code`, `rain_sum`.
+`precipitation_probability_max`, `wind_speed_10m_max`, `weather_code`, `rain_sum`, `showers_sum`.
 Units are explicitly Celsius, km/h, percentages and millimetres; returned units,
 array lengths, dates, numeric values, WMO codes and timezone are validated.
 Null required values are unavailable, never zero or a low-risk forecast.
@@ -180,7 +180,7 @@ provider: open_meteo | mock
 data_mode: live | mock
 status: success
 forecast: [{date, temperature_max_c, temperature_min_c,
-            precipitation_probability_max, wind_speed_max_kmh, rain_sum_mm,
+            precipitation_probability_max, wind_speed_max_kmh, rain_sum_mm, showers_sum_mm,
             weather_code, condition, risk_level, disruption_indicators}]
 disruption_events: [{event_type: weather_disruption, location, affected_date,
                      severity: high, requires_replanning_assessment: true,
@@ -219,11 +219,11 @@ All comparisons are inclusive; the highest applicable level wins.
 | Rain probability | ≥90% | high | high_rain_probability |
 | Maximum sustained wind | ≥40 km/h | moderate | strong_wind |
 | Maximum sustained wind | ≥60 km/h | high | strong_wind |
-| Forecast daily rain amount | ≥30 mm/day | high | heavy_rain |
+| Forecast daily rain + showers amount | ≥30 mm/day | high | heavy_rain |
 | WMO code | 95, 96, 99 | high | thunderstorm |
 | No rule triggered | — | low | none |
 
-`heavy_rain` means the configured daily rain amount is exceeded; it does not
+`heavy_rain` means the configured daily rain + showers amount is met or exceeded; it does not
 establish hourly intensity. Rain probability alone never produces `heavy_rain`.
 Configure through `thresholds`, using keys `rain_probability_moderate`,
 `rain_probability_high`, `wind_moderate_kmh`, `wind_high_kmh`,
@@ -286,7 +286,25 @@ Open-Meteo, Duffel or NexLLM. The repository had no pre-existing test files at t
 C3 baseline. An optional manual live smoke must use actual destination-current
 dates; real forecast availability is distinct from mocked contract validation.
 
-Known limits: first-result geocoding can be ambiguous; max 16 days is an upper
+Known limits: first-result geocoding can be ambiguous; textual qualifier lookup
+is bounded to ten candidates and may return no match; max 16 days is an upper
 bound, not a guarantee of all variables; any missing required value fails the
 whole requested range; no caching, official alerts or historical lookup; mock
 catalogue is intentionally small. Person A owns assessment and future replanning.
+
+### C3 review follow-up
+
+PR review adds `showers_sum_mm` without removing existing response keys. The
+heavy-rain rule uses `rain_sum_mm + showers_sum_mm`, because Open-Meteo reports
+rain and showers separately. This is daily liquid rainfall, not hourly intensity
+or total precipitation including snow. Both amounts must be available.
+
+Pull requests run a lightweight Python 3.12 test workflow without API credentials.
+See [Person A handoff](docs/c3-integration-handoff.md) for the concise integration
+contract and [review report](docs/c3-pr-review.md) for findings and validation.
+Actual TripAgent integration is still an outstanding Person A task.
+
+Country-code qualifiers use Open-Meteo `countryCode` explicitly and are verified
+against returned `country_code`. Textual country/admin qualifiers are compared
+case-insensitively against up to ten city candidates; unmatched qualifiers fail
+safely. Two-letter qualifiers mean ISO country codes, not admin abbreviations.

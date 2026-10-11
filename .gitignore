@@ -46,3 +46,6 @@ htmlcov/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local credential configuration (tracked env.txt still requires owner remediation)
+env.txt

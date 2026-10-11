@@ -39,9 +39,15 @@ class OpenMeteoClient:
         return payload
 
     def lookup_location(self, location):
-        return self._get(self.geocoding_url, {
-            "name": location, "count": 1, "language": "en", "format": "json"
-        })
+        city, separator, qualifier = location.partition(",")
+        params = {
+            "name": city.strip(), "count": 10 if separator else 1,
+            "language": "en", "format": "json",
+        }
+        qualifier = qualifier.strip()
+        if separator and len(qualifier) == 2 and qualifier.isascii() and qualifier.isalpha():
+            params["countryCode"] = qualifier.upper()
+        return self._get(self.geocoding_url, params)
 
     def get_forecast(self, latitude, longitude, timezone, start_date, end_date):
         return self._get(f"{self.base_url}/forecast", {
@@ -56,5 +62,5 @@ class OpenMeteoClient:
 DAILY_FIELDS = (
     "temperature_2m_max", "temperature_2m_min",
     "precipitation_probability_max", "wind_speed_10m_max", "weather_code",
-    "rain_sum",
+    "rain_sum", "showers_sum",
 )

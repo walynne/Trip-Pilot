@@ -30,17 +30,21 @@ MOCK_LOCATIONS = {
     "new york": ("New York", 40.7128, -74.0060, "America/New_York"),
 }
 MOCK_SCENARIOS = {
-    # max C, min C, rain probability %, wind km/h, WMO code, daily rain mm
-    "normal": (28, 22, 20, 15, 2, 0),
-    "heavy_rain": (25, 21, 85, 25, 65, 40),
-    "strong_wind": (24, 19, 30, 70, 3, 1),
-    "severe": (23, 18, 95, 85, 99, 60),
+    # max C, min C, rain probability %, wind km/h, WMO code, daily rain mm, daily showers mm
+    "normal": (28, 22, 20, 15, 2, 0, 0),
+    "heavy_rain": (25, 21, 85, 25, 65, 40, 0),
+    "strong_wind": (24, 19, 30, 70, 3, 1, 0),
+    "severe": (23, 18, 95, 85, 99, 40, 20),
 }
 
 
 def _number(value):
-    return (isinstance(value, (int, float)) and not isinstance(value, bool)
-            and math.isfinite(value))
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def _invalid():
@@ -97,6 +101,10 @@ class WeatherSearchTool:
         if not isinstance(location, str) or not 2 <= len(location.strip()) <= 200:
             raise ValueError("location must be a destination name of 2 to 200 characters")
         location = location.strip()
+        city, separator, qualifier = location.partition(",")
+        qualifier = qualifier.strip()
+        if separator and (len(city.strip()) < 2 or not qualifier or "," in qualifier):
+            raise ValueError("location must be a city optionally followed by one country/admin qualifier")
         dates = []
         for value in (start_date, end_date):
             if not isinstance(value, str):
@@ -131,6 +139,16 @@ class WeatherSearchTool:
             results = payload.get("results", [])
             if not isinstance(results, list):
                 _invalid()
+            if separator:
+                if any(not isinstance(candidate, dict) for candidate in results):
+                    _invalid()
+                # Verify the qualifier even when the provider ignores its country filter.
+                field_names = ("country_code",) if len(qualifier) == 2 and qualifier.isascii() and qualifier.isalpha() else ("country", "admin1")
+                results = [candidate for candidate in results if any(
+                    isinstance(candidate.get(field), str)
+                    and candidate[field].casefold() == qualifier.casefold()
+                    for field in field_names
+                )]
             if not results:
                 raise WeatherError("location_not_found", "Destination was not found.")
             match = results[0]
@@ -153,7 +171,7 @@ class WeatherSearchTool:
             if payload.get("timezone") != tz:
                 _invalid()
             units = payload.get("daily_units")
-            required_units = dict(zip(DAILY_FIELDS, ("°C", "°C", "%", "km/h", "wmo code", "mm")))
+            required_units = dict(zip(DAILY_FIELDS, ("°C", "°C", "%", "km/h", "wmo code", "mm", "mm")))
             if not isinstance(units, dict) or any(units.get(k) != v for k, v in required_units.items()):
                 _invalid()
             daily = payload.get("daily")
@@ -169,14 +187,14 @@ class WeatherSearchTool:
                 _invalid()
         forecast, events = [], []
         for i, day in enumerate(expected_dates):
-            maximum, minimum, probability, wind, code, rain = [daily[k][i] for k in DAILY_FIELDS]
-            if maximum < minimum or not 0 <= probability <= 100 or wind < 0 or rain < 0 or code not in CONDITIONS:
+            maximum, minimum, probability, wind, code, rain, showers = [daily[k][i] for k in DAILY_FIELDS]
+            if maximum < minimum or not 0 <= probability <= 100 or wind < 0 or rain < 0 or showers < 0 or code not in CONDITIONS:
                 _invalid()
-            risk, indicators = self.classify_risk(probability, wind, rain, code)
+            risk, indicators = self.classify_risk(probability, wind, rain + showers, code)
             forecast.append({
                 "date": day, "temperature_max_c": maximum, "temperature_min_c": minimum,
                 "precipitation_probability_max": probability, "wind_speed_max_kmh": wind,
-                "rain_sum_mm": rain, "weather_code": int(code), "condition": CONDITIONS[code],
+                "rain_sum_mm": rain, "showers_sum_mm": showers, "weather_code": int(code), "condition": CONDITIONS[code],
                 "risk_level": risk, "disruption_indicators": indicators,
             })
             if risk == "high":
