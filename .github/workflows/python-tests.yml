@@ -2,6 +2,9 @@ name: Python tests
 
 on:
   pull_request:
+  push:
+    branches:
+      - feature/c2-c3-integration-validation
 
 permissions:
   contents: read
