@@ -322,3 +322,98 @@ def test_existing_flight_search_interface(monkeypatch):
     assert get_call.call_args.kwargs['params'] == {'offer_request_id': 'stub-request'}
     post.raise_for_status.assert_called_once()
     get.raise_for_status.assert_called_once()
+
+
+def test_skipped_heading_levels_keep_scenarios_as_siblings(tmp_path):
+    path = make_document(tmp_path / 'headings.docx', [
+        table([['Version', '2.0']]),
+        paragraph('Demo scenarios', 'Heading1'),
+        paragraph('Scenario Alpha', 'Heading3'),
+        paragraph('Synthetic flight evidence'),
+        paragraph('Scenario Beta', 'Heading3'),
+        table([['Name', 'Value'], ['Beta', 'Synthetic hotel evidence']]),
+        paragraph('Only Beta has this exception.'),
+        paragraph('Scenario Gamma', 'Heading3'),
+        paragraph('Synthetic budget evidence'),
+        paragraph('New subsection', 'Heading2'),
+        paragraph('Synthetic subsection evidence'),
+    ])
+    tool = PolicySearchTool(path)
+    beta = next(chunk for chunk in tool.retriever.document['chunks'] if chunk['kind'] == 'table_row')
+    assert beta['section'] == 'Demo scenarios > Scenario Beta'
+    assert beta['section_references'] == [dict(body_block=2, type='heading'), dict(body_block=5, type='heading')]
+    assert beta['context'][0]['text'] == 'Only Beta has this exception.'
+    gamma = next(chunk for chunk in tool.retriever.document['chunks'] if 'budget' in chunk['text'])
+    assert gamma['section'] == 'Demo scenarios > Scenario Gamma'
+    subsection = tool.search_policy('subsection', 1)['matches'][0]
+    assert subsection['section'] == 'Demo scenarios > New subsection'
+
+
+@pytest.mark.parametrize('encoding', ['utf-8', 'utf-16', 'utf-16-le', 'utf-16-be'])
+def test_dtd_rejection_independent_of_xml_encoding(tmp_path, encoding):
+    # Synthetic entity payload; no real policy text is copied into this fixture.
+    declaration = 'UTF-16' if encoding.startswith('utf-16') else 'UTF-8'
+    xml = f'''<?xml version="1.0" encoding="{declaration}"?>
+    <!DOCTYPE document [<!ENTITY injected "synthetic replacement">]>
+    <document xmlns="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <body><tbl><tr><tc><p><r><t>Version</t></r></p></tc>
+    <tc><p><r><t>2.0</t></r></p></tc></tr></tbl>
+    <p><r><t>&injected;</t></r></p></body></document>'''
+    path = tmp_path / 'entity.docx'
+    with ZipFile(path, 'w') as archive:
+        archive.writestr('word/document.xml', xml.encode(encoding))
+    with pytest.raises(PolicyRetrievalError) as error:
+        PolicySearchTool(path)
+    assert error.value.code == 'invalid_document'
+    assert str(error.value) == 'XML declarations are unsupported.'
+    assert 'synthetic replacement' not in str(error.value)
+
+
+@pytest.mark.parametrize('mode', ['encrypted', 'unsupported_compression', 'damaged_deflate'])
+def test_zip_member_failures_use_safe_error_contract(tmp_path, mode):
+    import struct
+    from zipfile import ZIP_DEFLATED
+    path = tmp_path / 'archive.docx'
+    with ZipFile(path, 'w', compression=ZIP_DEFLATED) as archive:
+        archive.writestr('word/document.xml', b'<synthetic>' * 100)
+    data = bytearray(path.read_bytes())
+    local = data.index(b'PK\x03\x04')
+    central = data.index(b'PK\x01\x02')
+    if mode == 'encrypted':
+        for offset in [local + 6, central + 8]:
+            struct.pack_into('<H', data, offset, struct.unpack_from('<H', data, offset)[0] | 1)
+    elif mode == 'unsupported_compression':
+        struct.pack_into('<H', data, local + 8, 99)
+        struct.pack_into('<H', data, central + 10, 99)
+    else:
+        name_length, extra_length = struct.unpack_from('<HH', data, local + 26)
+        data[local + 30 + name_length + extra_length] = 0xff
+    path.write_bytes(data)
+    with pytest.raises(PolicyRetrievalError) as error:
+        PolicySearchTool(path)
+    assert error.value.code == 'invalid_document'
+    assert str(tmp_path) not in str(error.value)
+
+
+def test_uncompressed_xml_size_limit(tmp_path, monkeypatch):
+    from zipfile import ZIP_DEFLATED
+    import rag.document_loader as loader
+    path = tmp_path / 'compressed.docx'
+    with ZipFile(path, 'w', compression=ZIP_DEFLATED) as archive:
+        archive.writestr('word/document.xml', b'x' * 10000)
+    monkeypatch.setattr(loader, 'MAX_DOCUMENT_BYTES', 1000)
+    assert path.stat().st_size < 1000
+    with pytest.raises(PolicyRetrievalError) as error:
+        PolicySearchTool(path)
+    assert error.value.code == 'invalid_document'
+
+
+@pytest.mark.parametrize('encoding', ['unknown-encoding', 'utf-16-le'])
+def test_unsupported_xml_encoding_has_safe_error(tmp_path, encoding):
+    path = tmp_path / 'encoding.docx'
+    xml = f'<?xml version="1.0" encoding="{encoding}"?><document/>'
+    with ZipFile(path, 'w') as archive:
+        archive.writestr('word/document.xml', xml.encode('utf-16-le' if encoding == 'utf-16-le' else 'utf-8'))
+    with pytest.raises(PolicyRetrievalError) as error:
+        PolicySearchTool(path)
+    assert error.value.code == 'invalid_document'

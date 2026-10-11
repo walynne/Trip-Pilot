@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
+from zlib import error as DecompressionError
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 MAX_DOCUMENT_BYTES = 10_000_000
@@ -17,6 +18,12 @@ class PolicyRetrievalError(ValueError):
     def __init__(self, code, message):
         self.code = code
         super().__init__(message)
+
+
+class _PolicyXMLTreeBuilder(ET.TreeBuilder):
+    def doctype(self, name, pubid, system):
+        # Parser callbacks see declarations regardless of the XML encoding.
+        raise PolicyRetrievalError("invalid_document", "XML declarations are unsupported.")
 
 
 def _text(node):
@@ -52,14 +59,22 @@ def load_policy(document_path, expected_version="2.0"):
         if path.stat().st_size > MAX_DOCUMENT_BYTES:
             raise PolicyRetrievalError("invalid_document", "Policy document exceeds the size limit.")
         data = path.read_bytes()
-        with ZipFile(BytesIO(data)) as archive:
-            info = archive.getinfo("word/document.xml")
-            if info.file_size > MAX_DOCUMENT_BYTES:
-                raise PolicyRetrievalError("invalid_document", "Policy XML exceeds the size limit.")
-            xml = archive.read(info)
-        if b"<!DOCTYPE" in xml or b"<!ENTITY" in xml:
-            raise PolicyRetrievalError("invalid_document", "XML declarations are unsupported.")
-        root = ET.fromstring(xml)
+        try:
+            with ZipFile(BytesIO(data)) as archive:
+                info = archive.getinfo("word/document.xml")
+                if info.file_size > MAX_DOCUMENT_BYTES:
+                    raise PolicyRetrievalError("invalid_document", "Policy XML exceeds the size limit.")
+                xml = archive.read(info)
+        except (RuntimeError, NotImplementedError, DecompressionError) as exc:
+            # ZipFile uses these for encrypted/unsupported/damaged members.
+            # Restrict this handling to archive reads, not application logic.
+            raise PolicyRetrievalError("invalid_document", "The policy DOCX could not be read.") from exc
+        try:
+            root = ET.fromstring(xml, parser=ET.XMLParser(target=_PolicyXMLTreeBuilder()))
+        except PolicyRetrievalError:
+            raise
+        except (ValueError, LookupError) as exc:
+            raise PolicyRetrievalError("invalid_document", "The policy XML encoding is unsupported.") from exc
     except FileNotFoundError as exc:
         raise PolicyRetrievalError("source_not_found", "The local policy source is missing.") from exc
     except (OSError, BadZipFile, KeyError, ET.ParseError) as exc:
@@ -88,6 +103,7 @@ def load_policy(document_path, expected_version="2.0"):
 
     chunks = []
     sections = []
+    section_levels = []
     section_references = []
     pending = []
     table_number = 0
@@ -115,9 +131,13 @@ def load_policy(document_path, expected_version="2.0"):
                     raise PolicyRetrievalError("unsupported_document", "Automatically numbered headings are unsupported.")
                 flush()
                 level = int(heading.group(1))
-                sections = sections[:level - 1] + [text]
-                section_references = section_references[:level - 1] + [
-                    {"body_block": block, "type": "heading"}]
+                while section_levels and section_levels[-1] >= level:
+                    section_levels.pop()
+                    sections.pop()
+                    section_references.pop()
+                section_levels.append(level)
+                sections.append(text)
+                section_references.append({"body_block": block, "type": "heading"})
             elif text:
                 # The contents list is navigation, not policy evidence.
                 if sections == ["Contents"]:
