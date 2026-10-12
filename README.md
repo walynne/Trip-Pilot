@@ -308,3 +308,17 @@ Country-code qualifiers use Open-Meteo `countryCode` explicitly and are verified
 against returned `country_code`. Textual country/admin qualifiers are compared
 case-insensitively against up to ten city candidates; unmatched qualifiers fail
 safely. Two-letter qualifiers mean ISO country codes, not admin abbreviations.
+## B2 Policy Retrieval (local Demo Baseline)
+
+`PolicySearchTool` provides offline, synchronous policy evidence retrieval from an authorized local version 2.0 DOCX. It preserves paragraph/table references, section context and source provenance. This is the retrieval stage of RAG; it does not generate policy answers or make B3 compliance/approval decisions, and TripAgent remains unchanged.
+
+```python
+from tools.policy_search import PolicySearchTool
+
+policy_tool = PolicySearchTool()
+evidence = policy_tool.search_policy("Singapore hotel maximum nightly rate", top_k=5)
+```
+
+Place the approved DOCX at `policies/TripPilot_Corporate_Travel_Policy_v2.docx`, or supply `document_path` explicitly. The document and local evaluation artifacts are ignored by Git; publication requires authorization. No embedding model, API key or new dependency is required for B2. Missing sources fail explicitly without fabricated policy content.
+
+Run `python -m pytest -q` using Python 3.12. Tests use synthetic fixtures and do not require the private DOCX or external services. See [B2 integration handoff](docs/b2-integration-handoff.md) for input/output/error contracts, evaluation instructions, source limitations and outstanding Person A/B3 integration work. The original project structure above includes planned components and should not be treated as proof of executable functionality.

@@ -49,3 +49,9 @@ Thumbs.db
 
 # Local credential configuration (tracked env.txt still requires owner remediation)
 env.txt
+# Local B2 baseline and evaluation artifacts; publication requires authorization
+/policies/*.docx
+/policies/*.json
+/policies/*.jsonl
+/policies/*.txt
+/policies/*.md
