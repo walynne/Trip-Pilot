@@ -46,3 +46,10 @@ htmlcov/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local B2 baseline and evaluation artifacts; publication requires authorization
+/policies/*.docx
+/policies/*.json
+/policies/*.jsonl
+/policies/*.txt
+/policies/*.md

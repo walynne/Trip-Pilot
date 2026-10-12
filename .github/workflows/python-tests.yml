@@ -20,6 +20,6 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install 'pytest>=8.4.2' 'requests==2.32.5' 'openai>=1.100.0' 'python-dotenv==1.1.1'
       - name: Check Python syntax
-        run: python -m compileall -q app.py agents services tools tests
+        run: python -m compileall -q app.py agents services tools rag scripts tests
       - name: Run offline tests
         run: python -m pytest -q
