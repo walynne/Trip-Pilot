@@ -1,7 +1,32 @@
-import json
+from llm.nexllm_client import (
+    NexLLMClient
+)
 
-from llm.nexllm_client import NexLLMClient
-from services.flight_service import FlightService
+from services.flight_service import (
+    FlightService
+)
+
+from agents.extraction_agent import (
+    ExtractionAgent
+)
+
+from agents.recommendation_agent import (
+    RecommendationAgent
+)
+
+from agents.monitoring_agent import (
+    MonitoringAgent
+)
+
+from agents.replanning_agent import (
+    ReplanningAgent
+)
+from utils.airport_mapper import (
+    is_iata_code
+)
+from utils.travel_dates import (
+    ensure_valid_return_date
+)
 
 
 class TripAgent:
@@ -10,255 +35,156 @@ class TripAgent:
 
         self.llm = NexLLMClient()
 
-        self.flight_service = FlightService()
-
-    def extract_trip_details(
-        self,
-        user_message
-    ):
-
-        prompt = f"""
-You are a travel extraction assistant.
-
-Extract travel requirements.
-
-IMPORTANT RULES:
-
-1. origin MUST be an IATA airport code.
-2. destination MUST be an IATA airport code.
-3. NEVER return city names.
-4. Return ONLY JSON.
-5. No explanation.
-6. No markdown.
-
-Examples:
-
-Hong Kong -> HKG
-London -> LHR
-Singapore -> SIN
-Tokyo -> NRT
-New York -> JFK
-Paris -> CDG
-Frankfurt -> FRA
-
-Output format:
-
-{{
-    "origin": "HKG",
-    "destination": "LHR",
-    "departure_date": "2026-11-15",
-    "budget": 2500,
-    "preferences": [
-        "direct flight"
-    ]
-}}
-
-User Request:
-
-{user_message}
-"""
-
-        response = self.llm.chat(
-            "You extract travel requirements.",
-            prompt
+        self.flight_service = (
+            FlightService()
         )
 
-        print("\n===== AI EXTRACTION =====")
-        print(response)
-
-        try:
-
-            trip_details = json.loads(
-                response
+        self.extractor = (
+            ExtractionAgent(
+                self.llm
             )
-
-            trip_details.setdefault(
-                "origin",
-                "HKG"
-            )
-
-            trip_details.setdefault(
-                "destination",
-                "LHR"
-            )
-
-            trip_details.setdefault(
-                "departure_date",
-                "2026-11-15"
-            )
-
-            trip_details.setdefault(
-                "budget",
-                2500
-            )
-
-            trip_details.setdefault(
-                "preferences",
-                []
-            )
-
-            return trip_details
-
-        except Exception as e:
-
-            print(
-                "JSON Parse Error:",
-                e
-            )
-
-            return {
-
-                "origin":
-                    "HKG",
-
-                "destination":
-                    "LHR",
-
-                "departure_date":
-                    "2026-11-15",
-
-                "budget":
-                    2500,
-
-                "preferences":
-                    []
-            }
-
-    def recommend_flights(
-        self,
-        requirements,
-        flights
-    ):
-
-        prompt = f"""
-You are TripPilot.
-
-Traveler Requirements:
-
-{json.dumps(requirements, indent=2)}
-
-Available Flights:
-
-{json.dumps(flights, indent=2)}
-
-Please recommend the BEST flight.
-
-Consider:
-
-1. Price
-2. Airline quality
-3. Number of stops
-4. Arrival convenience
-5. Business traveler suitability
-6. User preferences
-
-Provide:
-
-Recommended Flight:
-
-Reason:
-
-Alternative Option:
-"""
-
-        recommendation = self.llm.chat(
-            "You are a corporate travel advisor.",
-            prompt
         )
 
-        return recommendation
+        self.recommender = (
+            RecommendationAgent(
+                self.llm
+            )
+        )
+
+        self.monitor = (
+            MonitoringAgent(
+                self.llm
+            )
+        )
+
+        self.replanner = (
+            ReplanningAgent(
+                self.llm,
+                self.flight_service
+            )
+        )
 
     def run(
         self,
         user_message
     ):
 
-        try:
+        trip = (
+            self.extractor.extract(
+                user_message
+            )
+        )
 
-            # Step 1
-            trip_details = (
-                self.extract_trip_details(
-                    user_message
+        print("\nTRIP")
+        print(trip)
+
+        self._validate_trip(
+            trip
+        )
+
+        flights = (
+            self.flight_service
+            .get_flights(
+                trip["origin"],
+                trip["destination"],
+                trip["departure_date"],
+                trip.get("return_date")
+            )
+        )
+
+        recommendation = (
+            self.recommender.recommend(
+                trip,
+                flights
+            )
+        )
+
+        event = (
+            self.monitor.detect(
+                trip,
+                flights
+            )
+        )
+
+        monitoring = (
+            self.monitor.analyse(
+                trip,
+                event
+            )
+        )
+
+        replan = None
+
+        if event["severity"] in [
+            "HIGH",
+            "MEDIUM"
+        ]:
+
+            replan = (
+                self.replanner.replan(
+                    trip,
+                    event
                 )
             )
 
-            print(
-                "\n===== FINAL TRIP DETAILS ====="
+        return {
+            "agent_steps": [
+                "Extracted travel requirements",
+                f"Searching {trip['origin']} → {trip['destination']}",
+                "Retrieved flight offers",
+                "Generated recommendation",
+                "Monitoring agent executed",
+                f"Detected {event['type']}",
+                "Replanning executed"
+                if replan
+                else "No replanning required"
+            ],
+            "trip_details": trip,
+            "flights": flights,
+            "recommendation": recommendation,
+            "event": event,
+            "monitor_result": monitoring,
+            "replan_result": replan
+        }
+
+    def _validate_trip(
+        self,
+        trip
+    ):
+
+        origin = trip.get(
+            "origin"
+        )
+
+        destination = trip.get(
+            "destination"
+        )
+
+        departure_date = trip.get(
+            "departure_date"
+        )
+
+        return_date = trip.get(
+            "return_date"
+        )
+
+        if not is_iata_code(origin):
+            raise ValueError(
+                "Origin airport is required. Please provide a valid 3-letter IATA code or city, for example HKG or Hong Kong."
             )
 
-            print(
-                json.dumps(
-                    trip_details,
-                    indent=2
-                )
+        if not is_iata_code(destination):
+            raise ValueError(
+                "Destination airport is required. Please provide a valid 3-letter IATA code or city, for example LHR or London."
             )
 
-            # Step 2
-            flights = (
-                self.flight_service
-                .get_flights(
-                    trip_details[
-                        "origin"
-                    ],
-                    trip_details[
-                        "destination"
-                    ],
-                    trip_details[
-                        "departure_date"
-                    ]
-                )
+        if not departure_date:
+            raise ValueError(
+                "Departure date is required. Please provide a future travel date."
             )
 
-            # Step 3
-            recommendation = (
-                self.recommend_flights(
-                    trip_details,
-                    flights
-                )
+        if return_date:
+            ensure_valid_return_date(
+                departure_date,
+                return_date
             )
-
-            return {
-
-                "agent_steps": [
-
-                    "Extracted travel requirements",
-
-                    "Validated IATA airport codes",
-
-                    "Called Duffel Flight API",
-
-                    "Retrieved flight offers",
-
-                    "Ranked available flights",
-
-                    "Generated recommendation"
-                ],
-
-                "requirements":
-                    trip_details,
-
-                "flights":
-                    flights,
-
-                "recommendation":
-                    recommendation
-            }
-
-        except Exception as e:
-
-            print(
-                "TRIP AGENT ERROR:",
-                str(e)
-            )
-
-            return {
-
-                "agent_steps": [
-                    "Failed during execution"
-                ],
-
-                "recommendation":
-                    f"Error: {str(e)}",
-
-                "flights": []
-            }
