@@ -1,0 +1,49 @@
+D2 — Evaluation Framework & Stress-Scenario Suite Purpose
+
+Measure reliability, policy compliance, performance, and governance integrity using reproducible tests, KPIs, and a simple dashboard.
+Core KPIs (what to measure and how)
+
+Policy Compliance Rate
+What: Percent of agent recommendations that fully meet policy rules (no unauthorized overrides).
+How: (Compliant recommendations) / (Total recommendations) over test window. Report daily/weekly.
+Cost Efficiency & Savings
+What: Dollars saved by agent-selected corporate-compliant options vs consumer alternatives.
+How: Compare chosen booking cost to a market baseline for same route/time.
+Re-planning Success Rate
+What: Percent of disruption events where the agent produced at least one acceptable, policy-compliant alternative.
+How: (Successful re-plans) / (Total disruption events) — include escalation counts.
+System Latency (Re-planning Latency)
+What: Time from disruption detection to delivery of ranked, compliant alternatives.
+How: event_timestamp → recommendation_timestamp (report median and p95).
+Audit Trail Integrity
+What: Percent of agent actions, policy checks, overrides, and human approvals recorded successfully.
+How: Verify logs for each transaction contain required metadata (user, timestamp, policy IDs, decision).
+Stress test scenarios (how to run and acceptance criteria)
+
+Flight Cancellation
+Test action: Feed a supplier cancellation event for a booked flight.
+Acceptance: Agent detects cancellation, proposes ≥2 policy-compliant alternatives, flags cabin breaches (FLIGHT-CABIN-01/02), or escalates if no compliant option.
+Hotel Unavailable
+Test action: Mark primary hotel as sold-out/unsafe.
+Acceptance: Agent recommends nearest safe hotel within city tier caps (Tier 1: $300, Tier 2: $200, Tier 3: $150) and preferred supplier priority; escalate if none found.
+Mid-Trip Budget Reduction
+Test action: Inject a lower budget for remaining trip days.
+Acceptance: Agent re-plans nights/meals to fit the new limit while preserving core business purpose, or flags for a policy exception.
+Non-Compliant Booking Rejection
+Test action: Submit an itinerary with clear policy violations (e.g., Business Class on <6hr flight, hotel above tier cap).
+Acceptance: Agent rejects automated booking, generates escalation notice citing exact Policy IDs (e.g., FLIGHT-CABIN-01, HOTEL-RATE-T1).
+Test execution checklist (simple steps)
+
+Prepare input dataset for each scenario (traveler role, itinerary, supplier messages).
+Run scenario through the demo or backend test harness.
+Capture outputs:
+Agent recommendations (with policy flags and costs)
+Approval routing decisions and approver metadata
+Timestamps (event, detection, recommendation, approval)
+Audit log entries and any escalation messages
+Score results against acceptance criteria and compute KPIs.
+Dashboard & reporting (what to show in slides)
+
+Summary KPI tiles: Policy Compliance Rate, Cost Savings, Re-planning Success Rate, Median Latency.
+Drilldowns: Examples of re-plans (before/after), top violations (by Policy ID), recent escalations with resolutions.
+Audit sample: One full transaction showing timestamps and approver trail.
