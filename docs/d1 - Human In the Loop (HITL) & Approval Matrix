@@ -1,0 +1,37 @@
+D1 — Human-in-the-Loop (HITL) & Approval Matrix Architecture Purpose
+
+Prevent autonomous overspending and ensure consistent corporate oversight by placing clear decision boundaries, programmatic guards, and escalation paths around the agent.
+Key behaviors (plain English)
+
+The agent recommends bookings and changes, but certain costs or rule-violations automatically trigger human approval steps before any booking is completed.
+All approval actions and decisions are logged with timestamps and approver identity for auditability.
+Approval thresholds (routing rules)
+
+Total cost < USD 1,000
+Route to: Line Manager
+Action expected: Manager confirms budget and business purpose; approval recorded.
+Total cost USD 1,000 – USD 3,000
+Route to: Department Head
+Action expected: Dept Head verifies policy compliance and approves or escalates.
+Total cost USD 3,000 – USD 10,000
+Route to: Director
+Action expected: Director-level approval required.
+Total cost > USD 10,000
+Route to: CFO/CEO + Finance Review
+Action expected: Formal finance and risk review; decision required before booking.
+Hard governance guardrails (non-negotiable)
+
+No Self-Approval (GENERAL-01)
+The system blocks any attempt by a requester to approve their own travel.
+No Expense Splitting
+The system detects and blocks attempts to split invoices or trip legs to avoid thresholds; such attempts are escalated for investigation and rejected if abusive.
+Operational details for the HITL flow
+
+Metadata included with every approval request:
+Requester, cost breakdown, policy IDs checked, suggested compliant alternatives, and audit token.
+Escalation behavior:
+If no compliant option exists within caps, the agent produces a clear escalation notice including exact violated Policy IDs and suggested next steps (e.g., request formal exception).
+UI / Demo behavior (Streamlit)
+Approvers receive an escalation panel showing choices, compliance flags (green/yellow/red), required approval buttons, and an audit log view.
+Example approval routing (copyable):
+Request total: USD 2,450 → Route: Department Head → Approval required before auto-booking.
