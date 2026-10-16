@@ -1,6 +1,8 @@
 """B3 policy evaluation. Evidence comes from B2. No booking and no approval."""
 
-from tools.policy_search import PolicySearchTool
+import json
+
+from tools.policy_search import DEFAULT_POLICY_DOCUMENT, PolicySearchTool
 from rag.document_loader import PolicyRetrievalError
 
 
@@ -15,9 +17,10 @@ MEAL_CAP = {1: 80, 2: 60, 3: 40}
 
 
 class PolicyAgent:
-    def __init__(self, document_path="policies/TripPilot_Corporate_Travel_Policy_v2.docx",
-                 expected_version="2.0", search_tool=None):
+    def __init__(self, document_path=DEFAULT_POLICY_DOCUMENT,
+                 expected_version="2.0", search_tool=None, llm=None):
         self.search_tool = search_tool or PolicySearchTool(document_path, expected_version)
+        self.llm = llm
 
     def evaluate(self, proposal):
         if not isinstance(proposal, dict):
@@ -43,7 +46,7 @@ class PolicyAgent:
 
         if currency and str(currency).upper() != "USD":
             missing.append("hotel.currency_usd")
-        if rate is not None and tier is None:
+        if (rate is not None or meals is not None) and tier is None:
             missing.append("city_tier")
         if cabin and hours is None:
             missing.append("flight.duration_hours")
@@ -100,7 +103,7 @@ class PolicyAgent:
             text = "Violates " + ", ".join(violations)
         else:
             text = f"Checked fields are within the hard limits. Required approver: {approver}."
-        return {
+        result = {
             "status": status,
             "violated_rules": violations,
             "missing_facts": missing,
@@ -113,3 +116,40 @@ class PolicyAgent:
                 for m in evidence.get("matches", [])
             ],
         }
+        self._add_llm_explanation(result, evidence)
+        return result
+
+    def _add_llm_explanation(self, result, evidence):
+        matches = evidence.get("matches", [])
+        if self.llm is None or not matches:
+            return
+
+        decision_context = {
+            "status": result["status"],
+            "violated_rules": result["violated_rules"],
+            "missing_facts": result["missing_facts"],
+            "required_approver": result["required_approver"],
+            "fallback_explanation": result["explanation"],
+            "policy_evidence": [
+                {
+                    "section": match.get("section"),
+                    "text": match.get("text"),
+                    "context": match.get("context", []),
+                    "references": match.get("references", []),
+                }
+                for match in matches
+            ],
+        }
+        try:
+            explanation = self.llm.chat(
+                """You write concise explanations for a policy evaluation that has already been decided.
+Do not change or reinterpret the supplied status, rule IDs, missing facts, or approver.
+Use only the supplied decision fields and policy evidence. Never say the trip is approved
+or booked. Return one short plain-text paragraph. If the evidence is insufficient, use
+the fallback explanation exactly.""",
+                json.dumps(decision_context, default=str),
+            )
+            if isinstance(explanation, str) and explanation.strip():
+                result["explanation"] = explanation.strip()
+        except Exception:
+            pass

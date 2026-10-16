@@ -2,7 +2,7 @@
 
 ## Implemented scope
 
-B2 loads the local, user-approved Demo Baseline `policies/TripPilot_Corporate_Travel_Policy_v2.docx` (version 2.0), builds an in-memory lexical BM25 index and retrieves source evidence. It does not generate answers, classify a trip as compliant, calculate policy eligibility, approve an exception or execute a booking. B3 and TripAgent integration are separate work owned by the team.
+B2 loads the local Demo Baseline `docs/TripPilot_Corporate_Travel_Policy_v2.docx` (version 2.0), builds an in-memory lexical BM25 index and retrieves source evidence. It does not generate answers, classify a trip as compliant, calculate policy eligibility, approve an exception or execute a booking.
 
 The existing `agents/policy_agent.py` is empty on this branch. A directory shown in the original README is not evidence that its functionality exists. No operational B3 evaluator, RAG-to-TripAgent invocation or approval flow is established by B2.
 
@@ -14,7 +14,7 @@ Run from the repository root, or pass an explicit local path:
 from tools.policy_search import PolicySearchTool, PolicyRetrievalError
 
 policy_tool = PolicySearchTool(
-    document_path="policies/TripPilot_Corporate_Travel_Policy_v2.docx",
+    document_path="docs/TripPilot_Corporate_Travel_Policy_v2.docx",
     expected_version="2.0",
 )
 
@@ -101,7 +101,7 @@ Python 3.12 is the validation baseline. For a small test environment, install on
 python -m pytest -q
 python -m compileall -q app.py agents services tools rag scripts tests
 python -m scripts.evaluate_policy_retrieval \
-  --document policies/TripPilot_Corporate_Travel_Policy_v2.docx \
+  --document docs/TripPilot_Corporate_Travel_Policy_v2.docx \
   --cases policies/b2-evaluation-cases.json
 ```
 

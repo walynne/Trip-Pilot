@@ -21,6 +21,8 @@ from agents.monitoring_agent import (
 from agents.replanning_agent import (
     ReplanningAgent
 )
+from agents.policy_agent import PolicyAgent
+from rag.document_loader import PolicyRetrievalError
 from utils.airport_mapper import (
     is_iata_code
 )
@@ -31,9 +33,10 @@ from utils.travel_dates import (
 
 class TripAgent:
 
-    def __init__(self):
+    def __init__(self, policy_agent=None):
 
         self.llm = NexLLMClient()
+        self.policy_agent = policy_agent
 
         self.flight_service = (
             FlightService()
@@ -66,7 +69,8 @@ class TripAgent:
 
     def run(
         self,
-        user_message
+        user_message,
+        booking_proposal=None
     ):
 
         trip = (
@@ -127,7 +131,7 @@ class TripAgent:
                 )
             )
 
-        return {
+        result = {
             "agent_steps": [
                 "Extracted travel requirements",
                 f"Searching {trip['origin']} → {trip['destination']}",
@@ -145,6 +149,126 @@ class TripAgent:
             "event": event,
             "monitor_result": monitoring,
             "replan_result": replan
+        }
+
+        if booking_proposal is not None:
+            policy_result, booking_gate = self._evaluate_booking_proposal(
+                booking_proposal
+            )
+            result["policy_result"] = policy_result
+            result["booking_gate"] = booking_gate
+            result["agent_steps"].append("Evaluated booking proposal against policy")
+            result["agent_steps"].append(
+                f"Booking gate: {booking_gate['status']}"
+            )
+
+        return result
+
+    def _evaluate_booking_proposal(self, proposal):
+        if not isinstance(proposal, dict):
+            policy_result = self._policy_error(
+                "invalid_proposal",
+                "Booking proposal must be an object."
+            )
+            return policy_result, self._booking_gate(
+                "error",
+                "Policy evaluation could not run. No booking was placed."
+            )
+
+        flight = proposal.get("flight")
+        if not isinstance(flight, dict):
+            flight = {}
+        hotel = proposal.get("hotel")
+        if not isinstance(hotel, dict):
+            hotel = {}
+
+        missing = []
+        cabin = flight.get("cabin")
+        if cabin not in {"economy", "premium_economy", "business"}:
+            missing.append("flight.cabin")
+        hours = flight.get("duration_hours")
+        if (isinstance(hours, bool) or not isinstance(hours, (int, float))
+                or hours <= 0):
+            missing.append("flight.duration_hours")
+        total = proposal.get("total_cost_usd")
+        if (isinstance(total, bool) or not isinstance(total, (int, float))
+                or total <= 0):
+            missing.append("total_cost_usd")
+        if ((hotel.get("nightly_rate_usd") is not None
+             or proposal.get("meals_usd") is not None)
+                and proposal.get("city_tier") not in (1, 2, 3)):
+            missing.append("city_tier")
+
+        if missing:
+            policy_result = {
+                "status": "needs_facts",
+                "violated_rules": [],
+                "missing_facts": missing,
+                "required_approver": None,
+                "explanation": "Missing booking facts: " + ", ".join(missing),
+                "evidence": [],
+            }
+            return policy_result, self._booking_gate(
+                "needs_facts",
+                "Provide the missing facts before a booking can be considered."
+            )
+
+        try:
+            policy_agent = self.policy_agent
+            if policy_agent is None:
+                policy_agent = PolicyAgent(llm=self.llm)
+                self.policy_agent = policy_agent
+            policy_result = policy_agent.evaluate(proposal)
+        except PolicyRetrievalError as error:
+            policy_result = self._policy_error(error.code, str(error))
+        except Exception as error:
+            policy_result = self._policy_error(
+                "policy_evaluation_failed",
+                str(error)
+            )
+
+        return policy_result, self._booking_gate(
+            policy_result.get("status"),
+            policy_result.get("explanation", "Policy result is unavailable."),
+            policy_result.get("required_approver")
+        )
+
+    def _booking_gate(self, policy_status, explanation, approver=None):
+        if policy_status == "compliant" and approver:
+            status = "awaiting_approval"
+            message = f"Policy requires approval from {approver}. No booking was placed."
+        elif policy_status == "compliant":
+            status = "policy_cleared_not_booked"
+            message = "Policy checks passed, but no booking operation is available."
+        elif policy_status == "escalate":
+            status = "human_review_required"
+            message = "Policy requires human review. No booking was placed."
+        elif policy_status == "non_compliant":
+            status = "blocked_by_policy"
+            message = "The proposal violates policy. No booking was placed."
+        elif policy_status == "needs_facts":
+            status = "blocked_missing_facts"
+            message = "Required policy facts are missing. No booking was placed."
+        else:
+            status = "blocked_policy_error"
+            message = "Policy could not be verified. No booking was placed."
+
+        return {
+            "status": status,
+            "booked": False,
+            "message": message,
+            "policy_explanation": explanation,
+        }
+
+    def _policy_error(self, code, message):
+        return {
+            "status": "error",
+            "violated_rules": [],
+            "missing_facts": [],
+            "required_approver": None,
+            "explanation": message,
+            "evidence": [],
+            "error": {"code": code, "message": message},
         }
 
     def _validate_trip(

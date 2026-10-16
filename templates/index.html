@@ -301,6 +301,164 @@
 
             margin-bottom: 10px;
         }
+
+        .policy-entry {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+
+        .policy-entry summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .policy-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .policy-field {
+            min-width: 0;
+            font-size: 12px;
+            color: #334155;
+        }
+
+        .policy-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .policy-field input,
+        .policy-field select {
+            width: 100%;
+            min-width: 0;
+            margin-top: 4px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .policy-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .policy-note,
+        .policy-empty {
+            color: #475569;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .policy-gate-card {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            font-size: 13px;
+        }
+
+        .policy-gate-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .policy-badge {
+            display: inline-block;
+            padding: 4px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .policy-badge.state-ok {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .policy-badge.state-warn {
+            color: #854d0e;
+            background: #fef9c3;
+        }
+
+        .policy-badge.state-blocked {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .policy-flow {
+            display: grid;
+            gap: 0;
+            margin: 10px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .policy-flow-step {
+            display: grid;
+            grid-template-columns: 22px minmax(0, 1fr);
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .policy-flow-step:last-child {
+            border-bottom: 0;
+        }
+
+        .policy-flow-number {
+            display: grid;
+            width: 20px;
+            height: 20px;
+            place-items: center;
+            border-radius: 50%;
+            background: #e2e8f0;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .policy-flow-step.state-ok .policy-flow-number {
+            color: white;
+            background: #15803d;
+        }
+
+        .policy-flow-step.state-warn .policy-flow-number {
+            color: #713f12;
+            background: #fde047;
+        }
+
+        .policy-flow-step.state-blocked .policy-flow-number {
+            color: white;
+            background: #b91c1c;
+        }
+
+        .policy-flow-step small {
+            display: block;
+            margin-top: 2px;
+            color: #475569;
+            overflow-wrap: anywhere;
+        }
+
+        .policy-details {
+            margin-top: 8px;
+            color: #334155;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .policy-details p {
+            margin: 5px 0;
+        }
         .alert-card {
 
     border-radius: 12px;
@@ -450,11 +608,18 @@
 
             .container {
                 flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 80px);
             }
 
             .sidebar {
                 width: 100%;
                 height: 350px;
+                flex: 0 0 350px;
+            }
+
+            .main {
+                min-height: 55vh;
             }
         }
 
@@ -489,6 +654,76 @@
         </h3>
 
         <div id="flights"></div>
+
+        <h3 class="section-title">
+            Policy Gate
+        </h3>
+
+        <div id="policyGate" aria-live="polite">
+            <div class="policy-gate-card">
+                <p class="policy-empty">No policy proposal evaluated.</p>
+                <ol class="policy-flow">
+                    <li class="policy-flow-step"><span class="policy-flow-number">1</span><span>Proposal<small>Waiting for trip facts</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">2</span><span>Policy<small>Not evaluated</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">3</span><span>Approval<small>Not recorded</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">4</span><span>Booking<small>Not booked</small></span></li>
+                </ol>
+            </div>
+        </div>
+
+        <details class="policy-entry">
+            <summary>Policy check inputs</summary>
+            <label class="policy-toggle">
+                <input type="checkbox" id="includePolicyCheck">
+                Include these facts in the next request
+            </label>
+            <div class="policy-fields">
+                <label class="policy-field">
+                    Traveler role
+                    <select id="policyRole">
+                        <option value="">Select role</option>
+                        <option value="manager">Manager</option>
+                        <option value="director">Director</option>
+                        <option value="ceo">CEO</option>
+                    </select>
+                </label>
+                <label class="policy-field">
+                    City tier
+                    <select id="policyCityTier">
+                        <option value="">Select tier</option>
+                        <option value="1">Tier 1</option>
+                        <option value="2">Tier 2</option>
+                        <option value="3">Tier 3</option>
+                    </select>
+                </label>
+                <label class="policy-field">
+                    Cabin
+                    <select id="policyCabin">
+                        <option value="">Select cabin</option>
+                        <option value="economy">Economy</option>
+                        <option value="premium_economy">Premium economy</option>
+                        <option value="business">Business</option>
+                    </select>
+                </label>
+                <label class="policy-field">
+                    Flight duration (hours)
+                    <input id="policyDuration" type="number" min="0.1" step="0.1" inputmode="decimal">
+                </label>
+                <label class="policy-field full">
+                    Total trip cost (USD)
+                    <input id="policyTotalUsd" type="number" min="0.01" step="0.01" inputmode="decimal">
+                </label>
+                <label class="policy-field">
+                    Hotel per night (USD, optional)
+                    <input id="policyHotelUsd" type="number" min="0" step="0.01" inputmode="decimal">
+                </label>
+                <label class="policy-field">
+                    Meals (USD, optional)
+                    <input id="policyMealsUsd" type="number" min="0" step="0.01" inputmode="decimal">
+                </label>
+            </div>
+            <p class="policy-note">A policy pass is not approval or a reservation. This page does not book or pay for flights.</p>
+        </details>
 
         <h3 class="section-title">
             Monitoring
@@ -572,6 +807,7 @@
                 placeholder="Ask TripPilot anything...">
 
             <button
+                id="sendButton"
                 onclick="sendMessage()">
 
                 Send
@@ -845,6 +1081,14 @@ async function sendMessage() {
 
     input.value = "";
 
+    const payload = {
+        message: message
+    };
+
+    if (document.getElementById("includePolicyCheck").checked) {
+        payload.booking_proposal = buildBookingProposal();
+    }
+
     try {
 
         const response =
@@ -858,9 +1102,7 @@ async function sendMessage() {
                         "application/json"
                     },
 
-                    body: JSON.stringify({
-                        message: message
-                    })
+                    body: JSON.stringify(payload)
                 }
             );
 
@@ -884,6 +1126,11 @@ async function sendMessage() {
             data.flights || []
         );
 
+        renderPolicyGate(
+            data.policy_result,
+            data.booking_gate
+        );
+
     } catch (err) {
 
         addMessage(
@@ -891,6 +1138,141 @@ async function sendMessage() {
             "agent"
         );
     }
+}
+
+function readOptionalNumber(id) {
+    const raw = document.getElementById(id).value.trim();
+    if (!raw) {
+        return null;
+    }
+
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+}
+
+function buildBookingProposal() {
+    const cityTier = document.getElementById("policyCityTier").value;
+    const proposal = {
+        traveler_role: document.getElementById("policyRole").value || null,
+        city_tier: cityTier ? Number(cityTier) : null,
+        flight: {
+            cabin: document.getElementById("policyCabin").value || null,
+            duration_hours: readOptionalNumber("policyDuration")
+        },
+        total_cost_usd: readOptionalNumber("policyTotalUsd")
+    };
+
+    const hotelRate = readOptionalNumber("policyHotelUsd");
+    if (hotelRate !== null) {
+        proposal.hotel = {
+            nightly_rate_usd: hotelRate,
+            currency: "USD"
+        };
+    }
+
+    const meals = readOptionalNumber("policyMealsUsd");
+    if (meals !== null) {
+        proposal.meals_usd = meals;
+    }
+
+    return proposal;
+}
+
+function renderPolicyGate(policy, gate) {
+    const container = document.getElementById("policyGate");
+    if (!policy || !gate) {
+        container.innerHTML = `
+            <div class="policy-gate-card">
+                <p class="policy-empty">No policy proposal evaluated for this request.</p>
+                <ol class="policy-flow">
+                    <li class="policy-flow-step"><span class="policy-flow-number">1</span><span>Proposal<small>Waiting for trip facts</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">2</span><span>Policy<small>Not evaluated</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">3</span><span>Approval<small>Not recorded</small></span></li>
+                    <li class="policy-flow-step"><span class="policy-flow-number">4</span><span>Booking<small>Not booked</small></span></li>
+                </ol>
+            </div>
+        `;
+        return;
+    }
+
+    const policyStatus = policy.status || "error";
+    const gateLabels = {
+        awaiting_approval: "Awaiting approval",
+        blocked_by_policy: "Blocked by policy",
+        blocked_missing_facts: "Missing required facts",
+        human_review_required: "Human review required",
+        blocked_policy_error: "Policy unavailable",
+        policy_cleared_not_booked: "Policy passed, not booked"
+    };
+    const gateLabel = gateLabels[gate.status] || "Policy check returned";
+    const gateTone = policyStatus === "compliant" ? "state-ok" :
+        policyStatus === "non_compliant" || policyStatus === "error" ? "state-blocked" : "state-warn";
+    const missing = policy.missing_facts || [];
+    const violations = policy.violated_rules || [];
+    const approver = policy.required_approver;
+    const evidence = (policy.evidence || []).map(item => {
+        const section = escapeHtml(item.section || "Policy section");
+        const chunk = escapeHtml(item.chunk_id || "");
+        const references = Array.isArray(item.references) ? item.references.map(reference => {
+            const block = reference.body_block ? `block ${reference.body_block}` : "";
+            const row = reference.row ? `row ${reference.row}` : "";
+            return [block, row].filter(Boolean).map(escapeHtml).join(", ");
+        }).filter(Boolean).join("; ") : "";
+        return `<li>${section}${chunk ? ` (${chunk})` : ""}${references ? `, ${references}` : ""}</li>`;
+    }).join("");
+    const errorCode = policy.error && policy.error.code
+        ? escapeHtml(policy.error.code)
+        : "";
+    const policyVersion = policy.policy_version
+        ? escapeHtml(policy.policy_version)
+        : "";
+    const documentHash = policy.document_sha256
+        ? escapeHtml(policy.document_sha256)
+        : "";
+
+    const proposalState = missing.length ? "state-warn" : "state-ok";
+    const policyState = policyStatus === "compliant" ? "state-ok" :
+        policyStatus === "non_compliant" || policyStatus === "error" ? "state-blocked" : "state-warn";
+    const approvalText = policyStatus !== "compliant" ? "Waiting for policy outcome" :
+        approver ? `Approval required: ${approver}` : "No approver returned";
+    const approvalState = policyStatus === "compliant" && approver ? "state-warn" : "";
+    const bookingText = gate.booked ? "Booked" : "Not booked";
+
+    container.innerHTML = `
+        <div class="policy-gate-card">
+            <div class="policy-gate-head">
+                <strong>Pre-booking result</strong>
+                <span class="policy-badge ${gateTone}">${escapeHtml(gateLabel)}</span>
+            </div>
+            <ol class="policy-flow">
+                <li class="policy-flow-step ${proposalState}">
+                    <span class="policy-flow-number">1</span>
+                    <span>Proposal<small>${missing.length ? "Facts needed: " + missing.map(escapeHtml).join(", ") : "Required facts received"}</small></span>
+                </li>
+                <li class="policy-flow-step ${policyState}">
+                    <span class="policy-flow-number">2</span>
+                    <span>Policy check<small>${escapeHtml(policyStatus.replace(/_/g, " "))}${violations.length ? ": " + violations.map(escapeHtml).join(", ") : ""}</small></span>
+                </li>
+                <li class="policy-flow-step ${approvalState}">
+                    <span class="policy-flow-number">3</span>
+                    <span>Approval<small>${escapeHtml(approvalText)}</small></span>
+                </li>
+                <li class="policy-flow-step">
+                    <span class="policy-flow-number">4</span>
+                    <span>Booking<small>${bookingText}. No reservation is created.</small></span>
+                </li>
+            </ol>
+            <div class="policy-details">
+                <p><strong>Policy explanation:</strong> ${escapeHtml(policy.explanation || gate.message || "No explanation returned.")}</p>
+                <p><strong>Booking status:</strong> ${escapeHtml(gate.message || "No booking status returned.")}</p>
+                ${errorCode ? `<p><strong>Policy error:</strong> ${errorCode}</p>` : ""}
+                ${policyVersion ? `<p><strong>Policy version:</strong> ${policyVersion}</p>` : `<p><strong>Policy version:</strong> Not verified</p>`}
+                ${documentHash ? `<p><strong>Source document SHA-256:</strong> <code>${documentHash}</code></p>` : ""}
+                ${evidence ? `<p>Evidence sections:</p><ul>${evidence}</ul>` : ""}
+                ${!evidence && policyStatus === "compliant" ? `<p>No retrieved evidence was attached; verify the policy source before relying on this result.</p>` : ""}
+            </div>
+        </div>
+    `;
 }
 
 function renderSteps(steps) {
@@ -1128,6 +1510,13 @@ document
             }
         }
     );
+
+document
+    .getElementById("includePolicyCheck")
+    .addEventListener("change", function() {
+        document.getElementById("sendButton").textContent =
+            this.checked ? "Check & Send" : "Send";
+    });
 
 </script>
 

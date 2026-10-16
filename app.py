@@ -51,9 +51,14 @@ def chat():
                 "Message cannot be empty"
             }), 400
 
-        result = trip_agent.run(
-            message
-        )
+        booking_proposal = data.get("booking_proposal")
+        if booking_proposal is None:
+            result = trip_agent.run(message)
+        else:
+            result = trip_agent.run(
+                message,
+                booking_proposal=booking_proposal
+            )
 
         return jsonify(result)
 

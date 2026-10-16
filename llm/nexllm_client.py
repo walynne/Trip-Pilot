@@ -1,7 +1,8 @@
 import os
 
-from openai import OpenAI
 from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -10,7 +11,10 @@ class NexLLMClient:
 
     def __init__(self):
 
-        self.client = OpenAI(
+        self.model = ChatOpenAI(
+            model=os.getenv(
+                "NEXLLM_CHAT_MODEL"
+            ),
             api_key=os.getenv(
                 "NEXLLM_API_KEY"
             ),
@@ -19,9 +23,13 @@ class NexLLMClient:
             )
         )
 
-        self.chat_model = os.getenv(
-            "NEXLLM_CHAT_MODEL"
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{system_prompt}"),
+                ("human", "{user_prompt}")
+            ]
         )
+        self.chain = self.prompt | self.model
 
     def chat(
         self,
@@ -29,26 +37,11 @@ class NexLLMClient:
         user_prompt
     ):
 
-        response = (
-            self.client.chat.completions.create(
-                model=self.chat_model,
-
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt
-                    }
-                ]
-            )
+        response = self.chain.invoke(
+            {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt
+            }
         )
 
-        return (
-            response
-            .choices[0]
-            .message
-            .content
-        )
+        return response.content

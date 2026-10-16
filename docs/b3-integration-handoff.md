@@ -11,10 +11,12 @@ A BM25 success or a high score is not a compliance verdict.
 Run from the repository root after one flight and one hotel exist.
 
     from agents.policy_agent import PolicyAgent, PolicyEvaluationError
+    from llm.nexllm_client import NexLLMClient
 
     agent = PolicyAgent(
-        document_path="policies/TripPilot_Corporate_Travel_Policy_v2.docx",
+        document_path="docs/TripPilot_Corporate_Travel_Policy_v2.docx",
         expected_version="2.0",
+        llm=NexLLMClient(),
     )
 
     try:
@@ -34,6 +36,31 @@ Run from the repository root after one flight and one hotel exist.
         }
 
 Initialize once. If B3 returns error, keep the flight, hotel, and weather results. Do not invent a compliant itinerary.
+
+Passing `NexLLMClient()` enables an optional LangChain-generated explanation using the retrieved policy excerpts. The LLM cannot set the status, rule IDs, missing facts or approver; if the call fails, the deterministic explanation is retained. Omit `llm` to run policy evaluation without API credentials.
+
+## TripAgent pre-booking gate
+
+`POST /chat` accepts an optional `booking_proposal` alongside `message`. Supply a concrete, selected itinerary proposal with flight cabin, duration, and total trip cost in USD; include city tier when hotel or meal costs are present. `TripAgent` returns `policy_result` and `booking_gate`. A compliant result with a `required_approver` is `awaiting_approval`, not permission to purchase.
+
+This is only a pre-booking gate: the current Duffel integration searches offers but does not preserve an offer ID or create an order. Every gate response has `booked: false`; do not treat it as a reservation. Add a real booking adapter and an explicit approval record before enabling purchase.
+
+Example request body:
+
+```json
+{
+    "message": "Find a flight from Hong Kong to Singapore on 15 Nov 2035",
+    "booking_proposal": {
+        "traveler_role": "manager",
+        "city": "Singapore",
+        "city_tier": 1,
+        "flight": {"cabin": "economy", "duration_hours": 4.0},
+        "hotel": {"nightly_rate_usd": 280, "currency": "USD"},
+        "meals_usd": 70,
+        "total_cost_usd": 2400
+    }
+}
+```
 
 ## Input
 
