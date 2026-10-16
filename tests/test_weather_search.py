@@ -229,7 +229,7 @@ def test_c1_flight_tool_and_service_regression(monkeypatch):
     service = FlightService()
     flights = service.get_flights("HKG", "SIN", "2026-11-15")
     assert len(flights) == 5
-    assert flights[0] == {"airline": "Test Airline", "price": "0", "currency": "HKD"}
+    assert flights[0] == {"airline": "Test Airline", "airlines": ["Unknown Airline"], "airline_names": ["Test Airline"], "price": "0.00", "currency": "HKD", "original_price": "0", "original_currency": "HKD", "stops": 0, "departure": None, "arrival": None, "origin": None, "destination": None}
     assert post.call_args.kwargs["json"]["data"]["slices"] == [
         {"origin": "HKG", "destination": "SIN", "departure_date": "2026-11-15"}]
     assert get.call_args.kwargs["params"] == {"offer_request_id": "offer-request"}
@@ -239,13 +239,22 @@ def test_c1_trip_agent_response_regression(monkeypatch):
     from agents.trip_agent import TripAgent
     agent = TripAgent.__new__(TripAgent)
     requirements = {"origin": "HKG", "destination": "SIN", "departure_date": "2026-11-15"}
-    agent.extract_trip_details = Mock(return_value=requirements)
+    # Match the real TripAgent attributes used by run()
+    agent.extractor = Mock()
+    agent.extractor.extract.return_value = requirements
     agent.flight_service = Mock()
     agent.flight_service.get_flights.return_value = [{"airline": "Test Airline"}]
-    agent.recommend_flights = Mock(return_value="Recommended")
+    agent.recommender = Mock()
+    agent.recommender.recommend.return_value = "Recommended"
+    agent.monitor = Mock()
+    agent.monitor.detect.return_value = {"type": "none", "severity": "LOW"}
+    agent.monitor.analyse.return_value = {"status": "ok"}
+    agent.replanner = Mock()
+    agent.replanner.replan.return_value = {"status": "not_needed"}
+
     result = agent.run("Travel to Singapore")
-    assert set(result) == {"requirements", "flights", "recommendation", "agent_steps"}
-    assert result["requirements"] == requirements
+    assert set(result) == {"agent_steps", "trip_details", "requirements", "flights", "recommendation", "event", "monitor_result", "replan_result"}
+    assert result["trip_details"] == requirements
     assert result["recommendation"] == "Recommended"
     agent.flight_service.get_flights.assert_called_once_with("HKG", "SIN", "2026-11-15")
 
@@ -388,10 +397,17 @@ def test_json_serializable_success(monkeypatch):
 def test_documented_weather_failure_composition_preserves_c1():
     from agents.trip_agent import TripAgent
     agent = TripAgent.__new__(TripAgent)
-    agent.extract_trip_details = Mock(return_value={"origin": "HKG", "destination": "SIN", "departure_date": "2030-01-01"})
+    agent.extractor = Mock()
+    agent.extractor.extract.return_value = {"origin": "HKG", "destination": "SIN", "departure_date": "2030-01-01"}
     agent.flight_service = Mock()
     agent.flight_service.get_flights.return_value = [{"airline": "Test Airline"}]
-    agent.recommend_flights = Mock(return_value="Recommended")
+    agent.recommender = Mock()
+    agent.recommender.recommend.return_value = "Recommended"
+    agent.monitor = Mock()
+    agent.monitor.detect.return_value = {"type": "none", "severity": "LOW"}
+    agent.monitor.analyse.return_value = {"status": "ok"}
+    agent.replanner = Mock()
+    agent.replanner.replan.return_value = {"status": "not_needed"}
     result = agent.run("Trip request")
     try:
         result["weather"] = WeatherSearchTool("mock", mock_scenario="unavailable").search_weather("Singapore", "2030-01-01", "2030-01-02")
