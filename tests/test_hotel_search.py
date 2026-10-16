@@ -21,6 +21,24 @@ def hotels(**kwargs):
     return HotelSearchTool(**kwargs).search_hotels("Singapore, SG", "2030-11-15", "2030-11-18")
 
 
+def _flight_offer(amount, currency="HKD", airline="Sample Airline"):
+    return {
+        "owner": {"name": airline},
+        "total_amount": str(amount),
+        "total_currency": currency,
+        "slices": [{
+            "segments": [{
+                "marketing_carrier": {"iata_code": "CX", "name": airline},
+                "operating_carrier": {"iata_code": "CX", "name": airline},
+                "origin": {"iata_code": "HKG"},
+                "destination": {"iata_code": "SIN"},
+                "departing_at": "2030-11-15T10:00:00+00:00",
+                "arriving_at": "2030-11-15T13:00:00+00:00",
+            }]
+        }]
+    }
+
+
 def test_basic_mock_results():
     result = hotels()
     assert result["data_mode"] == "mock"
@@ -220,15 +238,13 @@ def test_c1_flight_service_contract_preserved(monkeypatch):
     post = Mock()
     post.return_value.json.return_value = {"data": {"id": "request-id"}}
     get = Mock()
-    get.return_value.json.return_value = {"data": [
-        {"owner": {"name": "Sample Airline"}, "total_amount": str(i), "total_currency": "HKD"}
-        for i in range(6)
-    ]}
+    offers = {"data": [_flight_offer(i, airline="Sample Airline") for i in range(5)]}
+    get.return_value.json.return_value = offers
     monkeypatch.setattr(requests, "post", post)
     monkeypatch.setattr(requests, "get", get)
     result = FlightService().get_flights("HKG", "SIN", "2030-11-15")
     assert len(result) == 5
-    assert result[0] == {"airline": "Sample Airline", "price": "0", "currency": "HKD"}
+    assert result[0] == {"airline": "Sample Airline", "airlines": ["CX"], "airline_names": ["Sample Airline"], "price": "0.00", "currency": "HKD", "original_price": "0", "original_currency": "HKD", "stops": 0, "departure": "2030-11-15T10:00:00+00:00", "arrival": "2030-11-15T13:00:00+00:00", "origin": "HKG", "destination": "SIN"}
     assert post.call_args.kwargs["json"]["data"]["slices"] == [
         {"origin": "HKG", "destination": "SIN", "departure_date": "2030-11-15"}]
     assert get.call_args.kwargs["params"] == {"offer_request_id": "request-id"}
@@ -238,12 +254,19 @@ def test_hotel_failure_does_not_replace_trip_agent_result():
     from agents.trip_agent import TripAgent
     agent = TripAgent.__new__(TripAgent)
     requirements = {"origin": "HKG", "destination": "SIN", "departure_date": "2030-11-15"}
-    agent.extract_trip_details = Mock(return_value=requirements)
+    agent.extractor = Mock()
+    agent.extractor.extract.return_value = requirements
     agent.flight_service = Mock()
     agent.flight_service.get_flights.return_value = [{"airline": "Sample Airline"}]
-    agent.recommend_flights = Mock(return_value="Recommended flight")
+    agent.recommender = Mock()
+    agent.recommender.recommend.return_value = "Recommended flight"
+    agent.monitor = Mock()
+    agent.monitor.detect.return_value = {"type": "none", "severity": "LOW"}
+    agent.monitor.analyse.return_value = {"status": "ok"}
+    agent.replanner = Mock()
+    agent.replanner.replan.return_value = {"status": "not_needed"}
     result = agent.run("Trip request")
-    assert set(result) == {"requirements", "flights", "recommendation", "agent_steps"}
+    assert set(result) == {"agent_steps", "trip_details", "requirements", "flights", "recommendation", "event", "monitor_result", "replan_result"}
     before = dict(result)
     try:
         result["hotels"] = HotelSearchTool(mock_scenario="provider_error").search_hotels(
@@ -253,3 +276,4 @@ def test_hotel_failure_does_not_replace_trip_agent_result():
                             "error_code": exc.code if isinstance(exc, HotelError) else "invalid_input"}
     assert all(result[key] == value for key, value in before.items())
     assert result["hotels"]["error_code"] == "provider_error"
+
