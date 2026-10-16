@@ -1,8 +1,12 @@
+import requests
+
 from tools.duffel_client import (
     DuffelClient
 )
-
-import requests
+from utils.travel_dates import (
+    ensure_future_departure_date,
+    ensure_valid_return_date
+)
 
 
 class FlightSearchTool:
@@ -15,26 +19,51 @@ class FlightSearchTool:
         self,
         origin,
         destination,
-        departure_date
+        departure_date,
+        return_date=None
     ):
+
+        departure_date = ensure_future_departure_date(
+            departure_date
+        )
+
+        return_date = ensure_valid_return_date(
+            departure_date,
+            return_date
+        )
+
+        slices = [
+
+            {
+                "origin":
+                    origin,
+
+                "destination":
+                    destination,
+
+                "departure_date":
+                    departure_date
+            }
+
+        ]
+
+        if return_date:
+            slices.append({
+                "origin":
+                    destination,
+
+                "destination":
+                    origin,
+
+                "departure_date":
+                    return_date
+            })
 
         payload = {
 
             "data": {
 
-                "slices": [
-
-                    {
-                        "origin":
-                            origin,
-
-                        "destination":
-                            destination,
-
-                        "departure_date":
-                            departure_date
-                    }
-                ],
+                "slices": slices,
 
                 "passengers": [
                     {
@@ -47,35 +76,27 @@ class FlightSearchTool:
             }
         }
 
+        print(payload)
+
         response = requests.post(
-
             f"{self.client.base_url}/air/offer_requests",
-
             headers=self.client.headers,
-
             json=payload
         )
 
-        print("Status:", response.status_code)
-        print("Response:")
         print(response.text)
 
         response.raise_for_status()
 
-        request_result = (
-            response.json()
-        )
+        offer_request = response.json()
 
         offer_request_id = (
-            request_result["data"]["id"]
+            offer_request["data"]["id"]
         )
 
         offers = requests.get(
-
             f"{self.client.base_url}/air/offers",
-
             headers=self.client.headers,
-
             params={
                 "offer_request_id":
                     offer_request_id
