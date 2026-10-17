@@ -59,6 +59,24 @@ def test_incomplete_proposal_fails_closed_before_policy_evaluation():
     assert policy_agent.proposals == []
 
 
+def test_trip_plan_gate_requires_hotel_rate_and_city_tier():
+    policy_agent = FakePolicyAgent({"status": "compliant"})
+    trip_agent = TripAgent.__new__(TripAgent)
+    trip_agent.policy_agent = policy_agent
+
+    policy_result, booking_gate = trip_agent._evaluate_booking_proposal({
+        "flight": {"cabin": "economy", "duration_hours": 4},
+        "total_cost_usd": 800,
+        "hotel": {},
+    }, require_hotel=True)
+
+    assert policy_result["status"] == "needs_facts"
+    assert set(policy_result["missing_facts"]) == {"hotel.nightly_rate_usd", "city_tier"}
+    assert booking_gate["status"] == "blocked_missing_facts"
+    assert booking_gate["booked"] is False
+    assert policy_agent.proposals == []
+
+
 def test_noncompliant_proposal_is_blocked():
     policy_agent = FakePolicyAgent({
         "status": "non_compliant",

@@ -53,6 +53,17 @@ def test_initialization():
         WeatherSearchTool("mock", mock_scenario="unknown")
 
 
+def test_weather_service_delegates_to_tool():
+    from services.weather_service import WeatherService
+
+    service = WeatherService("mock")
+    assert service.tool.client is None
+    result = service.get_weather("Singapore", "2026-11-15", "2026-11-17")
+    assert result["status"] == "success"
+    assert result["location"] == "Singapore"
+    assert service.search_weather("Singapore", "2026-11-15", "2026-11-17")["forecast"][0]["date"] == "2026-11-15"
+
+
 def test_mock_success_and_provenance():
     result = WeatherSearchTool("mock").search_weather("Singapore", "2026-11-15", "2026-11-17")
     assert len(result["forecast"]) == 3
@@ -416,6 +427,31 @@ def test_documented_weather_failure_composition_preserves_c1():
     assert result["recommendation"] == "Recommended"
     assert result["flights"] == [{"airline": "Test Airline"}]
     assert result["weather"]["error_code"] == "forecast_unavailable"
+
+
+def test_trip_planner_includes_flights_hotel_budget_and_schedule():
+    from agents.planner_agent import PlannerAgent
+
+    plan = PlannerAgent().plan_trip({
+        "origin": "HKG",
+        "destination": "SIN",
+        "departure_date": "2026-11-15",
+        "return_date": "2026-11-18",
+        "guests": 2,
+        "rooms": 1,
+    })
+
+    assert plan["summary"]["destination"] == "Singapore"
+    assert plan["summary"]["trip_type"] == "round_trip"
+    assert plan["flights"]["status"] == "success"
+    assert plan["hotel"]["status"] == "success"
+    assert plan["weather"]["status"] == "success"
+    assert len(plan["schedule"]) >= 2
+    assert plan["hotel"]["budget_total"] > 0
+    weather_day = next(day for day in plan["schedule"] if day.get("temperature_min_c") is not None)
+    assert weather_day["temperature_max_c"] >= weather_day["temperature_min_c"]
+    assert 0 <= weather_day["precipitation_probability_max"] <= 100
+    assert weather_day["wind_speed_max_kmh"] >= 0
 
 
 @pytest.mark.parametrize("qualifier,field,value", [("Singapore", "country", "Singapore"), ("Central", "admin1", "Central")])

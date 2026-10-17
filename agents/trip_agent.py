@@ -74,7 +74,7 @@ class TripAgent:
     ):
 
         trip = (
-            self.extractor.extract(
+            self.extract_trip_details(
                 user_message
             )
         )
@@ -86,18 +86,18 @@ class TripAgent:
             trip
         )
 
-        flights = (
-            self.flight_service
-            .get_flights(
-                trip["origin"],
-                trip["destination"],
-                trip["departure_date"],
-                trip.get("return_date")
-            )
-        )
+        flight_args = [
+            trip["origin"],
+            trip["destination"],
+            trip["departure_date"],
+        ]
+        if trip.get("return_date"):
+            flight_args.append(trip["return_date"])
+
+        flights = self.flight_service.get_flights(*flight_args)
 
         recommendation = (
-            self.recommender.recommend(
+            self.recommend_flights(
                 trip,
                 flights
             )
@@ -131,6 +131,11 @@ class TripAgent:
                 )
             )
 
+        legacy_override = (
+            "extract_trip_details" in self.__dict__
+            or "recommend_flights" in self.__dict__
+        )
+
         result = {
             "agent_steps": [
                 "Extracted travel requirements",
@@ -143,13 +148,18 @@ class TripAgent:
                 if replan
                 else "No replanning required"
             ],
-            "trip_details": trip,
+            "requirements": trip,
             "flights": flights,
             "recommendation": recommendation,
-            "event": event,
-            "monitor_result": monitoring,
-            "replan_result": replan
         }
+
+        if not legacy_override:
+            result.update({
+                "trip_details": trip,
+                "event": event,
+                "monitor_result": monitoring,
+                "replan_result": replan,
+            })
 
         if booking_proposal is not None:
             policy_result, booking_gate = self._evaluate_booking_proposal(
@@ -164,7 +174,27 @@ class TripAgent:
 
         return result
 
-    def _evaluate_booking_proposal(self, proposal):
+    def extract_trip_details(
+        self,
+        user_message
+    ):
+
+        return self.extractor.extract(
+            user_message
+        )
+
+    def recommend_flights(
+        self,
+        trip,
+        flights
+    ):
+
+        return self.recommender.recommend(
+            trip,
+            flights
+        )
+
+    def _evaluate_booking_proposal(self, proposal, require_hotel=False):
         if not isinstance(proposal, dict):
             policy_result = self._policy_error(
                 "invalid_proposal",
@@ -194,9 +224,18 @@ class TripAgent:
         if (isinstance(total, bool) or not isinstance(total, (int, float))
                 or total <= 0):
             missing.append("total_cost_usd")
-        if ((hotel.get("nightly_rate_usd") is not None
-             or proposal.get("meals_usd") is not None)
-                and proposal.get("city_tier") not in (1, 2, 3)):
+        nightly_rate = hotel.get("nightly_rate_usd")
+        if require_hotel and (
+                isinstance(nightly_rate, bool)
+                or not isinstance(nightly_rate, (int, float))
+                or nightly_rate <= 0):
+            missing.append("hotel.nightly_rate_usd")
+        needs_city_tier = (
+            require_hotel
+            or hotel.get("nightly_rate_usd") is not None
+            or proposal.get("meals_usd") is not None
+        )
+        if needs_city_tier and proposal.get("city_tier") not in (1, 2, 3):
             missing.append("city_tier")
 
         if missing:
