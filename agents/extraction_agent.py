@@ -6,6 +6,7 @@ from utils.airport_mapper import (
     normalize_airport
 )
 from utils.travel_dates import (
+    extract_weekday_range,
     normalize_departure_date,
     normalize_return_date
 )
@@ -46,6 +47,7 @@ RULES:
 11. If the user does not specify a year, choose the next future occurrence.
 12. If the user mentions a return trip, populate return_date.
 13. Never return a return_date earlier than departure_date.
+14. If the user specifies a hotel stay duration, return hotel_nights as an integer.
 
 Date Examples:
 
@@ -83,6 +85,7 @@ Output Schema:
   "destination": "NRT",
   "departure_date": "2026-11-15",
   "return_date": null,
+    "hotel_nights": null,
   "budget": 2500,
   "preferences": []
 }}
@@ -198,5 +201,13 @@ Return JSON only.
         trip["return_date"] = normalize_return_date(
             trip.get("return_date")
         )
+
+        weekday_range = extract_weekday_range(user_message)
+        if weekday_range:
+            trip["departure_date"], trip["return_date"] = weekday_range
+
+        hotel_nights = re.search(r"\b(\d{1,2})\s+nights?\b", user_message, re.IGNORECASE)
+        if hotel_nights:
+            trip["hotel_nights"] = int(hotel_nights.group(1))
 
         return trip

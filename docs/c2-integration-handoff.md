@@ -3,7 +3,7 @@
 ## Boundary and consistency
 
 - Follows C1/C3: synchronous Python `HotelSearchTool` in `tools/`, `search_hotels(...)` returns JSON-safe dict; no new agent framework, no extra service wrapper.
-- **Only mock provider has been implemented.** No live hotel inventory, pricing, or reservation bookability is claimed. Do not connect to bookings or approvals as if quotes were real.
+- The deterministic mock provider remains available. The optional Duffel Stays adapter can return live search rates when the account has Stays access. Neither provider creates a reservation through this interface.
 - All sample hotel identities, locations, prices, availability, preferred-supplier flags and taxes are synthetic. A realistic test fixture is not official policy evidence.
 - No policy evaluation: B3 must use structured policy rules to evaluate these offer attributes.
 
@@ -30,7 +30,7 @@ hotels = HotelSearchTool(provider="mock").search_hotels(
 
 ## Next step for real-provider support
 
-Select a licensed hotel search provider with a documented availability and taxation contract; add a separate client adapter and contract tests under the *same* public `HotelSearchTool.search_hotels` interface. Preserve provenance and distinguish cached prices, estimates, quotes and confirmed bookability. Never invent hotel quotes from scraped search snippets.
+The optional Duffel Stays adapter is available through the same `HotelSearchTool.search_hotels` interface. Set `TRIPPILOT_HOTEL_PROVIDER=duffel`; when `DUFFEL_API_KEY` is present and no provider is explicitly selected, the planner uses Duffel. Set `TRIPPILOT_HOTEL_PROVIDER=mock` to force offline deterministic data. The adapter searches live rates and availability only; it never creates a booking. Duffel Stays access may need to be enabled for the account. Live totals/currency are returned as supplied by Duffel; missing fees or cancellation details are not invented. Treat rates as changeable search results, not a reservation or policy decision.
 
 ## Run tests
 

@@ -691,6 +691,86 @@
     margin-bottom: 15px;
 }
 
+        .decision-card {
+            border: 1px solid #d1d5db;
+            border-left: 4px solid #b45309;
+            background: #fff;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .decision-facts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px 16px;
+            margin: 14px 0;
+        }
+
+        .decision-fact span {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .decision-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .decision-actions button {
+            border: 1px solid #64748b;
+            background: #fff;
+            border-radius: 4px;
+            padding: 9px 12px;
+        }
+
+        .decision-actions button:hover,
+        .decision-actions button:focus-visible {
+            background: #f1f5f9;
+        }
+
+        .decision-response {
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        .meeting-inputs {
+            display: grid;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .meeting-inputs label {
+            display: grid;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .meeting-inputs input {
+            width: 100%;
+            padding: 8px;
+        }
+
+        .budget-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .budget-inputs label {
+            display: grid;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .budget-inputs input {
+            width: 100%;
+            padding: 8px;
+        }
+
 .rebook-header {
 
     font-weight: bold;
@@ -917,7 +997,7 @@
 
         <div class="controls">
 
-            <select id="scenario">
+            <select id="scenario" onchange="toggleDisruptionFields()">
 
                 <option value="delay">
                     Flight Delay
@@ -925,6 +1005,18 @@
 
                 <option value="cancel">
                     Flight Cancellation
+                </option>
+
+                <option value="hotel_unavailable">
+                    Hotel Unavailable
+                </option>
+
+                <option value="meeting_time_changed">
+                    Meeting Time Changed
+                </option>
+
+                <option value="budget_reduced">
+                    Budget Reduced
                 </option>
 
                 <option value="weather">
@@ -937,6 +1029,36 @@
 
             </select>
 
+        </div>
+
+        <div id="meetingDisruptionFields" class="meeting-inputs" hidden>
+            <label>
+                Meeting ID
+                <input id="disruptionMeetingId" type="text" maxlength="200" placeholder="Enter meeting ID">
+            </label>
+            <label>
+                Current start (ISO-8601 with UTC offset)
+                <input id="disruptionMeetingOriginal" type="text" maxlength="200" placeholder="2026-11-16T09:00:00+08:00">
+            </label>
+            <label>
+                Proposed start (ISO-8601 with UTC offset)
+                <input id="disruptionMeetingNew" type="text" maxlength="200" placeholder="2026-11-16T14:00:00+08:00">
+            </label>
+        </div>
+
+        <div id="budgetDisruptionFields" class="budget-inputs" hidden>
+            <label>
+                Currency
+                <input id="disruptionBudgetCurrency" type="text" maxlength="3" value="USD" placeholder="USD">
+            </label>
+            <label>
+                Current budget
+                <input id="disruptionBudgetOriginal" type="text" inputmode="decimal" maxlength="15" placeholder="2500.00">
+            </label>
+            <label>
+                Reduced budget
+                <input id="disruptionBudgetNew" type="text" inputmode="decimal" maxlength="15" placeholder="1800.00">
+            </label>
         </div>
 
         <div class="controls">
@@ -997,6 +1119,7 @@
 <script>
 
 window.currentTrip = null;
+window.currentHotel = null;
 
 function addMessage(text, type) {
 
@@ -1248,6 +1371,9 @@ async function sendMessage() {
         return;
     }
 
+    document.getElementById("monitoring").innerHTML = "";
+    document.getElementById("replanning").innerHTML = "";
+
     addMessage(
         "👤 " + message,
         "user"
@@ -1296,6 +1422,8 @@ async function sendMessage() {
 
         window.currentTrip =
             data.trip_details;
+        window.currentHotel =
+            data.hotel?.recommended || null;
 
         renderSteps(
             data.agent_steps || []
@@ -1449,6 +1577,7 @@ function renderPolicyGate(policy, gate) {
                 </li>
             </ol>
             <div class="policy-details">
+                ${policyStatus === "needs_facts" ? `<p><strong>What this means:</strong> The trip plan was returned, but policy clearance is pending until the missing facts above are supplied. No booking was made.</p>` : ""}
                 <p><strong>Policy explanation:</strong> ${escapeHtml(policy.explanation || gate.message || "No explanation returned.")}</p>
                 <p><strong>Booking status:</strong> ${escapeHtml(gate.message || "No booking status returned.")}</p>
                 ${errorCode ? `<p><strong>Policy error:</strong> ${errorCode}</p>` : ""}
@@ -1859,8 +1988,9 @@ function renderAlternativeFlights(
 }
 
 async function simulateDisruption() {
+    const scenario = document.getElementById("scenario").value;
 
-    if (!window.currentTrip) {
+    if (!window.currentTrip && !["meeting_time_changed", "budget_reduced"].includes(scenario)) {
 
         alert(
             "Search a trip first."
@@ -1869,10 +1999,120 @@ async function simulateDisruption() {
         return;
     }
 
-    const scenario =
-        document.getElementById(
-            "scenario"
-        ).value;
+    if (scenario === "hotel_unavailable") {
+        const trip = window.currentTrip || {};
+        const hotel = window.currentHotel || {};
+        const destination = trip.destination || trip.location || trip.city;
+        const hotelCitiesByAirport = {
+            HKG: "Hong Kong",
+            LHR: "London",
+            SIN: "Singapore",
+            JFK: "New York"
+        };
+        const hotelLocation = typeof destination === "string"
+            ? hotelCitiesByAirport[destination.trim().toUpperCase()] || destination
+            : destination;
+        const hotelContext = {
+            trip_id: "demo-trip",
+            hotel: {
+                hotel_id: hotel.hotel_id,
+                location: hotelLocation,
+                check_in: trip.departure_date || trip.start_date,
+                check_out: trip.return_date || trip.end_date,
+                guests: trip.guests,
+                rooms: trip.rooms
+            }
+        };
+
+        if (Object.values(hotelContext.hotel).some(value => value === undefined || value === null || value === "")) {
+            document.getElementById("monitoring").innerHTML = `
+                <div class="alert-card high">
+                    <div class="alert-title">Hotel disruption needs a complete trip plan</div>
+                    <p>Plan a trip with hotel, dates, guests, and rooms before simulating this event.</p>
+                </div>
+            `;
+            document.getElementById("replanning").innerHTML = "";
+            return;
+        }
+
+        try {
+            const response = await fetch("/simulate-disruption", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scenario, context: hotelContext })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Could not simulate hotel disruption.");
+            }
+            renderHotelDisruption(data.event);
+        } catch (error) {
+            document.getElementById("monitoring").innerHTML = `
+                <div class="alert-card high">${escapeHtml(error.message)}</div>
+            `;
+        }
+        return;
+    }
+
+    if (scenario === "meeting_time_changed") {
+        const meetingContext = {
+            trip_id: "demo-trip",
+            meeting: {
+                meeting_id: document.getElementById("disruptionMeetingId").value.trim(),
+                original_start: document.getElementById("disruptionMeetingOriginal").value.trim(),
+                new_start: document.getElementById("disruptionMeetingNew").value.trim()
+            }
+        };
+
+        try {
+            const response = await fetch("/simulate-disruption", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scenario, context: meetingContext })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Could not simulate meeting time change.");
+            }
+            renderMeetingDisruption(data.event);
+        } catch (error) {
+            document.getElementById("monitoring").innerHTML = `
+                <div class="alert-card high">${escapeHtml(error.message)}</div>
+            `;
+            document.getElementById("replanning").innerHTML = "";
+        }
+        return;
+    }
+
+    if (scenario === "budget_reduced") {
+        const budgetContext = {
+            trip_id: "demo-trip",
+            budget: {
+                currency: document.getElementById("disruptionBudgetCurrency").value.trim().toUpperCase(),
+                original_amount: document.getElementById("disruptionBudgetOriginal").value.trim(),
+                new_amount: document.getElementById("disruptionBudgetNew").value.trim()
+            }
+        };
+
+        try {
+            const response = await fetch("/simulate-disruption", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scenario, context: budgetContext })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Could not simulate budget reduction.");
+            }
+            renderBudgetDisruption(data.event);
+        } catch (error) {
+            document.getElementById("monitoring").innerHTML = `
+                <div class="alert-card high">${escapeHtml(error.message)}</div>
+            `;
+            document.getElementById("replanning").innerHTML = "";
+        }
+        return;
+    }
 
     const response =
         await fetch(
@@ -1966,6 +2206,112 @@ async function simulateDisruption() {
         data.replan_result.alternative_flights || []
     );
 }
+}
+
+function renderHotelDisruption(event) {
+    const hotel = event.affected_trip.hotel;
+    document.getElementById("monitoring").innerHTML = `
+        <div class="alert-card high">
+            <div class="alert-header">
+                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
+            </div>
+            <div class="alert-message">${escapeHtml(event.message)}</div>
+            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only, not verified availability</div>
+            <div class="decision-facts">
+                <div class="decision-fact"><span>Hotel ID</span>${escapeHtml(hotel.hotel_id)}</div>
+                <div class="decision-fact"><span>Location</span>${escapeHtml(hotel.location)}</div>
+                <div class="decision-fact"><span>Stay</span>${escapeHtml(hotel.check_in)} to ${escapeHtml(hotel.check_out)} (${escapeHtml(hotel.nights)} nights)</div>
+                <div class="decision-fact"><span>Guests / rooms</span>${escapeHtml(hotel.guests)} / ${escapeHtml(hotel.rooms)}</div>
+            </div>
+            <div><strong>Choose the next step</strong></div>
+            <div class="decision-actions">
+                <button type="button" onclick="recordHotelDecision('Review alternative hotels')">Review alternative hotels</button>
+                <button type="button" onclick="recordHotelDecision('Keep current plan')">Keep current plan</button>
+                <button type="button" onclick="recordHotelDecision('Decide later')">Decide later</button>
+            </div>
+            <div id="hotelDecisionResponse" class="decision-response" aria-live="polite"></div>
+        </div>
+    `;
+    document.getElementById("replanning").innerHTML = "";
+}
+
+function recordHotelDecision(decision) {
+    const response = document.getElementById("hotelDecisionResponse");
+    if (response) {
+        response.textContent = `Selected: ${decision}. No booking or itinerary change was made.`;
+    }
+}
+
+function toggleDisruptionFields() {
+    const scenario = document.getElementById("scenario").value;
+    document.getElementById("meetingDisruptionFields").hidden = scenario !== "meeting_time_changed";
+    document.getElementById("budgetDisruptionFields").hidden = scenario !== "budget_reduced";
+}
+
+function renderMeetingDisruption(event) {
+    const meeting = event.affected_trip.meeting;
+    document.getElementById("monitoring").innerHTML = `
+        <div class="alert-card high">
+            <div class="alert-header">
+                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
+            </div>
+            <div class="alert-message">${escapeHtml(event.message)}</div>
+            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only; no calendar change was made</div>
+            <div class="decision-facts">
+                <div class="decision-fact"><span>Meeting ID</span>${escapeHtml(meeting.meeting_id)}</div>
+                <div class="decision-fact"><span>Current start</span>${escapeHtml(meeting.original_start)}</div>
+                <div class="decision-fact"><span>Proposed start</span>${escapeHtml(meeting.new_start)}</div>
+            </div>
+            <div><strong>Choose the next step</strong></div>
+            <div class="decision-actions">
+                <button type="button" onclick="recordMeetingDecision('Accept proposed time')">Accept proposed time</button>
+                <button type="button" onclick="recordMeetingDecision('Keep current time')">Keep current time</button>
+                <button type="button" onclick="recordMeetingDecision('Decide later')">Decide later</button>
+            </div>
+            <div id="meetingDecisionResponse" class="decision-response" aria-live="polite"></div>
+        </div>
+    `;
+    document.getElementById("replanning").innerHTML = "";
+}
+
+function recordMeetingDecision(decision) {
+    const response = document.getElementById("meetingDecisionResponse");
+    if (response) {
+        response.textContent = `Selected: ${decision}. No calendar or itinerary change was made.`;
+    }
+}
+
+function renderBudgetDisruption(event) {
+    const budget = event.affected_trip.budget;
+    document.getElementById("monitoring").innerHTML = `
+        <div class="alert-card high">
+            <div class="alert-header">
+                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
+            </div>
+            <div class="alert-message">${escapeHtml(event.message)}</div>
+            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only; no budget or approval record was changed</div>
+            <div class="decision-facts">
+                <div class="decision-fact"><span>Currency</span>${escapeHtml(budget.currency)}</div>
+                <div class="decision-fact"><span>Current budget</span>${escapeHtml(budget.original_amount)}</div>
+                <div class="decision-fact"><span>Reduced budget</span>${escapeHtml(budget.new_amount)}</div>
+            </div>
+            <div><strong>Choose the next step</strong></div>
+            <div class="decision-actions">
+                <button type="button" onclick="recordBudgetDecision('Review trip costs')">Review trip costs</button>
+                <button type="button" onclick="recordBudgetDecision('Keep current budget')">Keep current budget</button>
+                <button type="button" onclick="recordBudgetDecision('Decide later')">Decide later</button>
+            </div>
+            <div id="budgetDecisionResponse" class="decision-response" aria-live="polite"></div>
+        </div>
+    `;
+    document.getElementById("replanning").innerHTML = "";
+}
+
+function recordBudgetDecision(decision) {
+    const response = document.getElementById("budgetDecisionResponse");
+    if (response) {
+        response.textContent = `Selected: ${decision}. No budget, approval, or itinerary record was changed.`;
+    }
 }
 
 document

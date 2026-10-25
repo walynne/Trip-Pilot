@@ -1,4 +1,46 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+import re
+
+
+WEEKDAYS = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+
+def extract_weekday_range(message, today=None):
+    if not isinstance(message, str):
+        return None
+
+    weekday = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
+    patterns = (
+        rf"\b(?:from\s+)?next\s+({weekday})\s+(?:to|through|until|[-\u2013])\s+(?:(?:next|this)\s+)?({weekday})\b",
+        rf"\bnext\s+({weekday})\b.*?\b(?:return|come back|back)\s+(?:(?:on|next|this)\s+)?({weekday})\b",
+    )
+    match = next(
+        (found for pattern in patterns if (found := re.search(pattern, message, re.IGNORECASE))),
+        None,
+    )
+    if match is None:
+        return None
+
+    reference = today or date.today()
+    start_weekday = WEEKDAYS[match.group(1).casefold()]
+    end_weekday = WEEKDAYS[match.group(2).casefold()]
+    days_until_start = (start_weekday - reference.weekday()) % 7
+    if days_until_start == 0:
+        days_until_start = 7
+    start = reference + timedelta(days=days_until_start)
+    days_to_end = (end_weekday - start_weekday) % 7
+    if days_to_end == 0:
+        days_to_end = 7
+    end = start + timedelta(days=days_to_end)
+    return start.isoformat(), end.isoformat()
 
 
 def _safe_replace_year(value, target_year):

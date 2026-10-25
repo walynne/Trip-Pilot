@@ -76,6 +76,12 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
 
     monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
     monkeypatch.setattr(app_module, "planner_agent", FakePlannerAgent())
+
+    class DisruptionSimulatorMustNotRun:
+        def simulate(self, *args, **kwargs):
+            raise AssertionError("Trip planning must not trigger disruption simulation")
+
+    monkeypatch.setattr(app_module, "DisruptionSimulator", DisruptionSimulatorMustNotRun)
     response = app_module.app.test_client().post(
         "/chat",
         json={"message": "Plan a trip to Singapore"},
@@ -83,7 +89,11 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
 
     result = response.get_json()
     assert response.status_code == 200
+    assert result["summary"]["destination"] == "Singapore"
+    assert result["flights"]["status"] == "success"
     assert result["hotel"]["budget_total"] == 450
+    assert result["hotel"]["status"] == "success"
+    assert result["weather"]["status"] == "success"
     assert result["recommendation"] == "Full trip recommendation"
     assert result["trip_details"] == requirements
     assert captured["planned"] == requirements
@@ -91,3 +101,34 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
     assert captured["policy_proposal"]["flight"]["cabin"] == "economy"
     assert result["policy_result"]["status"] == "needs_facts"
     assert result["booking_gate"]["booked"] is False
+    assert "event" not in result
+    assert "replan_result" not in result
+
+
+def test_chat_routes_hotel_rate_requests_to_llm_tool_flow(monkeypatch):
+    captured = {}
+
+    class FakeTripAgent:
+        def search_hotel_rates(self, message):
+            captured["message"] = message
+            return {
+                "message": "Two live offers found.",
+                "tool_calls": [{"name": "search_google_hotels"}],
+                "tool_results": [{"name": "search_google_hotels", "result": {"properties": []}}],
+            }
+
+        def run(self, *_args, **_kwargs):
+            raise AssertionError("Hotel rate request must not enter flight search")
+
+    monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
+    response = app_module.app.test_client().post(
+        "/chat",
+        json={"message": "Check hotel availability for lp123 from 2026-11-15 to 2026-11-17"},
+    )
+
+    result = response.get_json()
+    assert response.status_code == 200
+    assert captured["message"] == "Check hotel availability for lp123 from 2026-11-15 to 2026-11-17"
+    assert result["recommendation"] == "Two live offers found."
+    assert result["tool_calls"][0]["name"] == "search_google_hotels"
+    assert result["tool_results"][0]["result"] == {"properties": []}

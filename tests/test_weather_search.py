@@ -429,10 +429,14 @@ def test_documented_weather_failure_composition_preserves_c1():
     assert result["weather"]["error_code"] == "forecast_unavailable"
 
 
-def test_trip_planner_includes_flights_hotel_budget_and_schedule():
+def test_trip_planner_includes_flights_hotel_budget_and_schedule(monkeypatch):
     from agents.planner_agent import PlannerAgent
+    from tools.weather_search import WeatherSearchTool
 
-    plan = PlannerAgent().plan_trip({
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "mock")
+    planner = PlannerAgent()
+    planner.weather_tool = WeatherSearchTool("mock")
+    plan = planner.plan_trip({
         "origin": "HKG",
         "destination": "SIN",
         "departure_date": "2026-11-15",
@@ -452,6 +456,64 @@ def test_trip_planner_includes_flights_hotel_budget_and_schedule():
     assert weather_day["temperature_max_c"] >= weather_day["temperature_min_c"]
     assert 0 <= weather_day["precipitation_probability_max"] <= 100
     assert weather_day["wind_speed_max_kmh"] >= 0
+
+
+def test_trip_planner_keeps_return_flight_date_but_uses_explicit_hotel_nights(monkeypatch):
+    from agents.planner_agent import PlannerAgent
+    from tools.weather_search import WeatherSearchTool
+
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "mock")
+    planner = PlannerAgent()
+    planner.weather_tool = WeatherSearchTool("mock")
+    flight_requests = []
+    monkeypatch.setattr(
+        planner.flight_service,
+        "get_flights",
+        lambda *args: flight_requests.append(args) or [],
+    )
+
+    plan = planner.plan_trip({
+        "origin": "HKG",
+        "destination": "SIN",
+        "departure_date": "2026-10-26",
+        "return_date": "2026-10-30",
+        "hotel_nights": 1,
+    })
+
+    assert flight_requests == [("HKG", "SIN", "2026-10-26", "2026-10-30")]
+    assert plan["hotel"]["check_in"] == "2026-10-26"
+    assert plan["hotel"]["check_out"] == "2026-10-27"
+    assert plan["hotel"]["nights"] == 1
+
+
+def test_trip_planner_returns_partial_plan_when_city_is_outside_mock_catalogues(monkeypatch):
+    from agents.planner_agent import PlannerAgent
+    from tools.weather_search import WeatherSearchTool
+
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "mock")
+    planner = PlannerAgent()
+    planner.weather_tool = WeatherSearchTool("mock")
+    monkeypatch.setattr(
+        planner.flight_service,
+        "get_flights",
+        lambda *args: [{"airline": "Sample Airline", "price": "450.00", "currency": "USD"}],
+    )
+
+    plan = planner.plan_trip({
+        "origin": "HKG",
+        "destination": "Tokyo",
+        "departure_date": "2026-11-15",
+        "return_date": "2026-11-18",
+    })
+
+    assert plan["flights"]["status"] == "success"
+    assert plan["flights"]["recommended"]["airline"] == "Sample Airline"
+    assert plan["hotel"]["status"] == "unavailable"
+    assert plan["hotel"]["error_code"] == "location_not_found"
+    assert plan["weather"]["status"] == "unavailable"
+    assert plan["weather"]["error_code"] == "location_not_found"
+    assert "hotel options are unavailable" in plan["recommendation"]
+    assert "weather assessment is unavailable" in plan["recommendation"]
 
 
 @pytest.mark.parametrize("qualifier,field,value", [("Singapore", "country", "Singapore"), ("Central", "admin1", "Central")])

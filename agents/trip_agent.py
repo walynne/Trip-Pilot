@@ -29,6 +29,7 @@ from utils.airport_mapper import (
 from utils.travel_dates import (
     ensure_valid_return_date
 )
+from tools.google_hotels_tool import GoogleHotelsSearchTool, SEARCH_GOOGLE_HOTELS_SCHEMA
 
 
 class TripAgent:
@@ -173,6 +174,17 @@ class TripAgent:
             )
 
         return result
+
+    def search_hotel_rates(self, user_message):
+        """Let the LLM search Google Hotels through SerpApi."""
+        return self.llm.chat_with_tools(
+            "You help search Google Hotels. Use the search_google_hotels function for hotel requests. Preserve the user's destination and preferences in query, and use only dates and adult counts stated or clearly established in context. Do not invent dates or claim prices are guaranteed. Ask for missing check-in or check-out dates.",
+            user_message,
+            tools=[SEARCH_GOOGLE_HOTELS_SCHEMA],
+            tool_handlers={
+                "search_google_hotels": lambda **kwargs: GoogleHotelsSearchTool().search_google_hotels(**kwargs),
+            },
+        )
 
     def extract_trip_details(
         self,

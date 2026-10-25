@@ -140,6 +140,216 @@ def test_unsupported_provider_and_scenario():
         HotelSearchTool(mock_scenario="weather")
 
 
+def test_duffel_provider_normalizes_live_rates_without_inventing_tax_or_booking():
+    class Client:
+        def search(self, location, check_in, check_out, guests, rooms):
+            assert (location, check_in, check_out, guests, rooms) == (
+                "Tokyo", "2030-11-15", "2030-11-18", 2, 1,
+            )
+            return {
+                "location": "Tokyo",
+                "country_code": "JP",
+                "latitude": 35.6762,
+                "longitude": 139.6503,
+                "results": [{
+                    "accommodation": {
+                        "id": "acc_live_1",
+                        "name": "Live Sample Hotel",
+                        "location": {
+                            "address": {"city_name": "Tokyo", "country_code": "JP"},
+                            "geographic_coordinates": {"latitude": 35.67, "longitude": 139.65},
+                        },
+                        "rooms": [{"rates": [{
+                            "total_amount": "30000.00",
+                            "total_currency": "JPY",
+                            "base_amount": "27000.00",
+                            "tax_amount": "3000.00",
+                            "payment_type": "pay_now",
+                        }]}],
+                    }
+                }],
+            }
+
+    result = HotelSearchTool(provider="duffel", client=Client()).search_hotels(
+        "Tokyo", "2030-11-15", "2030-11-18", guests=2, rooms=1,
+    )
+
+    assert result["provider"] == "duffel"
+    assert result["data_mode"] == "live"
+    assert result["status"] == "success"
+    assert result["hotels"][0]["hotel_id"] == "acc_live_1"
+    assert result["hotels"][0]["pricing"] == {
+        "currency": "JPY",
+        "room_nightly_rate": "10000.00",
+        "room_count": 1,
+        "night_count": 3,
+        "subtotal": "27000.00",
+        "taxes": "3000.00",
+        "fees": None,
+        "total": "30000.00",
+        "taxes_are_simulated": False,
+        "payment_type": "pay_now",
+    }
+    assert result["hotels"][0]["availability_status"] == "available"
+    assert result["hotels"][0]["booking_url"] is None
+def test_duffel_client_sends_stay_search_and_fetch_all_rates_requests(monkeypatch):
+    from tools.duffel_stays_client import DuffelStaysClient
+
+    monkeypatch.setenv("DUFFEL_API_KEY", "test-token")
+    monkeypatch.setenv("DUFFEL_BASE_URL", "https://api.example.test")
+
+    class Response:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self.payload
+
+    class Session:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, url, **kwargs):
+            self.calls.append((method, url, kwargs))
+            if url.endswith("/stays/search"):
+                return Response({"data": {"results": [{"id": "srr_123"}]}})
+            return Response({"data": {"id": "srr_123", "accommodation": {"id": "acc_123"}}})
+
+    session = Session()
+    client = DuffelStaysClient(session=session)
+    client.geocoder.lookup_location = lambda _location: {
+        "results": [{"name": "Tokyo", "country_code": "JP", "latitude": 35.67, "longitude": 139.65}]
+    }
+    result = client.search("Tokyo", "2030-11-15", "2030-11-18", guests=3, rooms=2)
+
+    assert result["results"] == [{"id": "srr_123", "accommodation": {"id": "acc_123"}}]
+    assert session.calls[0][0:2] == ("POST", "https://api.example.test/stays/search")
+    assert session.calls[0][2]["json"]["data"]["rooms"] == 2
+    assert session.calls[0][2]["json"]["data"]["guests"] == [
+        {"type": "adult"}, {"type": "adult"}, {"type": "adult"},
+    ]
+    assert session.calls[1][0:2] == (
+        "POST",
+        "https://api.example.test/stays/search_results/srr_123/actions/fetch_all_rates",
+    )
+
+
+def test_duffel_access_denied_explains_stays_access_requirement(monkeypatch):
+    from tools.duffel_stays_client import DuffelStaysClient
+
+    monkeypatch.setenv("DUFFEL_API_KEY", "test-token")
+
+    class Response:
+        status_code = 403
+
+        def raise_for_status(self):
+            raise requests.exceptions.HTTPError(response=self)
+
+    class Session:
+        def request(self, *_args, **_kwargs):
+            return Response()
+
+    client = DuffelStaysClient(session=Session())
+    with pytest.raises(ValueError, match="request Stays access"):
+        client._request("POST", "/stays/search", json={"data": {}})
+
+
+def test_planner_selects_duffel_when_credentials_exist_and_allows_mock_override(monkeypatch):
+    from agents.planner_agent import PlannerAgent
+
+    monkeypatch.setenv("DUFFEL_API_KEY", "test-token")
+    monkeypatch.delenv("SERPAPI_API_KEY", raising=False)
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "duffel")
+    planner = PlannerAgent()
+    assert planner.hotel_service.provider == "duffel"
+
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "mock")
+    offline_planner = PlannerAgent()
+    assert offline_planner.hotel_service.provider == "mock"
+
+
+def test_google_hotels_search_normalizes_live_rates():
+    class Client:
+        def __init__(self):
+            self.request = None
+
+        def search_google_hotels(self, query, check_in, check_out, adults=2):
+            self.request = (query, check_in, check_out, adults)
+            return {
+                "status": "success",
+                "properties": [{
+                    "property_token": "prop123",
+                    "name": "Live Singapore Hotel",
+                    "rating": 4.7,
+                    "reviews": 820,
+                    "price_per_night": 240,
+                    "total_price": 480,
+                    "currency": "SGD",
+                    "amenities": ["Free Wi-Fi", "Business center"],
+                    "gps_coordinates": {"latitude": 1.3, "longitude": 103.8},
+                }],
+            }
+
+    client = Client()
+    result = HotelSearchTool(provider="serpapi", client=client).search_hotels(
+        "Singapore", "2030-11-15", "2030-11-17", guests=3, rooms=2,
+    )
+
+    assert client.request == ("Hotels in Singapore", "2030-11-15", "2030-11-17", 3)
+    assert result["provider"] == "google_hotels"
+    assert result["data_mode"] == "live"
+    assert result["hotels"][0]["name"] == "Live Singapore Hotel"
+    assert result["hotels"][0]["pricing"]["total"] == "480.00"
+    assert result["hotels"][0]["pricing"]["room_nightly_rate"] == "240.00"
+    assert result["hotels"][0]["rating"] == 4.7
+    assert result["hotels"][0]["amenities"] == ["Free Wi-Fi", "Business center"]
+
+
+def test_google_hotels_tool_uses_google_search_results_parameters():
+    from tools.google_hotels_tool import GoogleHotelsSearchTool
+
+    captured = {}
+
+    class FakeSearch:
+        def __init__(self, params):
+            captured["params"] = params
+
+        def get_dict(self):
+            return {
+                "search_parameters": {"currency": "USD"},
+                "properties": [{
+                    "name": "Tokyo Business Hotel",
+                    "overall_rating": 4.6,
+                    "reviews": 510,
+                    "rate_per_night": {"extracted_lowest": 180, "lowest": "$180"},
+                    "total_rate": {"extracted_lowest": 360, "lowest": "$360"},
+                    "amenities": ["Free Wi-Fi", "Breakfast"],
+                }],
+            }
+
+    result = GoogleHotelsSearchTool("test-key", search_class=FakeSearch).search_google_hotels(
+        "Hotels in Tokyo near Tokyo Station",
+        "2026-11-15",
+        "2026-11-17",
+        adults=2,
+    )
+
+    assert captured["params"] == {
+        "engine": "google_hotels",
+        "q": "Hotels in Tokyo near Tokyo Station",
+        "check_in_date": "2026-11-15",
+        "check_out_date": "2026-11-17",
+        "adults": 2,
+        "currency": "USD",
+        "api_key": "test-key",
+    }
+    assert result["status"] == "success"
+    assert result["result_count"] == 1
+    assert result["properties"][0]["rating"] == 4.6
+    assert result["properties"][0]["price_per_night"] == 180
 def test_json_serializable():
     json.dumps(hotels())
 

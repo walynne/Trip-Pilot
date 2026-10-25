@@ -2,6 +2,8 @@
 
 import json
 
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from tools.policy_search import DEFAULT_POLICY_DOCUMENT, PolicySearchTool
 from rag.document_loader import PolicyRetrievalError
 
@@ -21,6 +23,31 @@ class PolicyAgent:
                  expected_version="2.0", search_tool=None, llm=None):
         self.search_tool = search_tool or PolicySearchTool(document_path, expected_version)
         self.llm = llm
+        self.chain = self._build_chain() if llm else None
+
+    def _build_chain(self):
+        """Build a LangChain chain for policy explanations."""
+        if not self.llm:
+            return None
+
+        llm_model = self.llm.model if hasattr(self.llm, 'model') else None
+        if llm_model is None:
+            return None
+
+        try:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", """You write concise explanations for a policy evaluation that has already been decided.
+Do not change or reinterpret the supplied status, rule IDs, missing facts, or approver.
+Use only the supplied decision fields and policy evidence. Never say the trip is approved
+or booked. Return one short plain-text paragraph. If the evidence is insufficient, use
+the fallback explanation exactly."""),
+                ("human", "{decision_context}")
+            ])
+
+            chain = prompt | llm_model | StrOutputParser()
+            return chain
+        except (TypeError, AttributeError):
+            return None
 
     def evaluate(self, proposal):
         if not isinstance(proposal, dict):
@@ -141,14 +168,19 @@ class PolicyAgent:
             ],
         }
         try:
-            explanation = self.llm.chat(
-                """You write concise explanations for a policy evaluation that has already been decided.
+            if self.chain is not None:
+                explanation = self.chain.invoke({
+                    "decision_context": json.dumps(decision_context, default=str)
+                })
+            else:
+                explanation = self.llm.chat(
+                    """You write concise explanations for a policy evaluation that has already been decided.
 Do not change or reinterpret the supplied status, rule IDs, missing facts, or approver.
 Use only the supplied decision fields and policy evidence. Never say the trip is approved
 or booked. Return one short plain-text paragraph. If the evidence is insufficient, use
 the fallback explanation exactly.""",
-                json.dumps(decision_context, default=str),
-            )
+                    json.dumps(decision_context, default=str),
+                )
             if isinstance(explanation, str) and explanation.strip():
                 result["explanation"] = explanation.strip()
         except Exception:

@@ -10,6 +10,7 @@ from flask import (
 
 from agents.planner_agent import PlannerAgent
 from agents.trip_agent import TripAgent
+from tools.disruption_simulator import DisruptionSimulationError, DisruptionSimulator
 
 
 app = Flask(__name__)
@@ -64,7 +65,14 @@ def chat():
             }), 400
 
         booking_proposal = data.get("booking_proposal")
-        if _is_trip_plan_request(message):
+        if _is_hotel_search_request(message):
+            result = trip_agent.search_hotel_rates(message)
+            result["recommendation"] = result.pop("message", "")
+            result["agent_steps"] = [
+                "Asked the model to check hotel IDs and stay dates",
+                "Executed Google Hotels search" if result.get("tool_results") else "Requested missing hotel search details",
+            ]
+        elif _is_trip_plan_request(message):
             requirements = trip_agent.extract_trip_details(message)
             trip_agent._validate_trip(requirements)
             result = planner_agent.plan_trip(requirements)
@@ -157,6 +165,27 @@ def _is_trip_plan_request(message):
         "trip plan",
         "itinerary",
         "travel schedule",
+    ))
+
+
+def _is_hotel_search_request(message):
+    normalized = message.lower()
+    return any(phrase in normalized for phrase in (
+        "hotel rates",
+        "hotel rate",
+        "hotel availability",
+        "hotel available",
+        "room rates",
+        "room availability",
+        "rates for hotel",
+        "availability for hotel",
+        "search hotels",
+        "search for hotels",
+        "find hotels",
+        "find me a hotel",
+        "google hotels",
+        "hotel options",
+        "hotel recommendations",
     ))
 
 
@@ -278,6 +307,57 @@ def simulate_disruption():
             "scenario",
             "delay"
         )
+
+        if scenario == "hotel_unavailable":
+            try:
+                event = DisruptionSimulator().simulate(
+                    scenario,
+                    data.get("context"),
+                )
+            except DisruptionSimulationError as error:
+                return jsonify({
+                    "error": str(error),
+                    "code": error.code,
+                }), 400
+
+            return jsonify({
+                "event": event,
+                "human_decision_required": True,
+            })
+
+        if scenario == "meeting_time_changed":
+            try:
+                event = DisruptionSimulator().simulate(
+                    scenario,
+                    data.get("context"),
+                )
+            except DisruptionSimulationError as error:
+                return jsonify({
+                    "error": str(error),
+                    "code": error.code,
+                }), 400
+
+            return jsonify({
+                "event": event,
+                "human_decision_required": True,
+            })
+
+        if scenario == "budget_reduced":
+            try:
+                event = DisruptionSimulator().simulate(
+                    scenario,
+                    data.get("context"),
+                )
+            except DisruptionSimulationError as error:
+                return jsonify({
+                    "error": str(error),
+                    "code": error.code,
+                }), 400
+
+            return jsonify({
+                "event": event,
+                "human_decision_required": True,
+            })
 
         event = {
 
