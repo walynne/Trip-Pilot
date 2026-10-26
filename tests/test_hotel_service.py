@@ -205,6 +205,30 @@ def test_hotel_service_price_spike_scenario():
     assert result["mock_scenario"] == "price_spike"
 
 
+def test_hotel_service_falls_back_to_mock_on_live_provider_error(monkeypatch):
+    """Live provider failures should still return a valid mock alternative set."""
+    service = HotelService(provider="serpapi")
+
+    def boom(*args, **kwargs):
+        raise HotelError("provider_error", "Google Hotels search returned an error.")
+
+    monkeypatch.setattr(service.tool, "search_hotels", boom)
+
+    result = service.search_hotels(
+        location="Singapore",
+        check_in="2026-11-03",
+        check_out="2026-11-04",
+        guests=1,
+        rooms=1,
+    )
+
+    assert result["status"] == "success"
+    assert result["provider"] == "mock"
+    assert result["data_mode"] == "mock"
+    assert result["is_live"] is False
+    assert result["result_count"] > 0
+
+
 def test_hotel_service_error_handling():
     """Test error handling in HotelService."""
     service = HotelService(provider="mock")

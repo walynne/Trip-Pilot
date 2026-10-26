@@ -2,8 +2,11 @@ from datetime import date, datetime, timedelta, timezone
 import os
 
 from services.flight_service import FlightService
+from services.activity_service import build_activity_schedule
+from tools.activity_search import ActivitySearchTool
 from services.hotel_service import HotelService
 from tools.hotel_search import HotelError
+from tools.google_flights_tool import FlightSearchError
 from tools.weather_search import WeatherSearchTool
 from tools.openmeteo_client import WeatherError
 from utils.airport_mapper import CITY_TO_IATA
@@ -89,7 +92,7 @@ class PlannerAgent:
 
         try:
             weather_result = self.weather_tool.search_weather(destination_city, departure_date, return_date)
-        except WeatherError as error:
+        except (WeatherError, ValueError) as error:
             weather_result = {
                 "location": destination_city,
                 "provider": self.weather_tool.provider,
@@ -99,7 +102,8 @@ class PlannerAgent:
                 "disruption_events": [],
                 "official_alerts": [],
                 "mock_scenario": self.weather_tool.mock_scenario if self.weather_tool.provider == "mock" else None,
-                "error_code": error.code,
+                "error_code": error.code if isinstance(error, WeatherError) else "forecast_dates_unavailable",
+                "message": str(error),
             }
 
         best_flight = flights[0] if flights else {}
@@ -108,19 +112,11 @@ class PlannerAgent:
         if hotel_options:
             budget_total = float(hotel_options[0]["pricing"]["total"])
 
-        schedule = []
-        for day in weather_result.get("forecast", []):
-            schedule.append({
-                "date": day.get("date"),
-                "condition": day.get("condition"),
-                "risk_level": day.get("risk_level"),
-                "temperature_max_c": day.get("temperature_max_c"),
-                "temperature_min_c": day.get("temperature_min_c"),
-                "precipitation_probability_max": day.get("precipitation_probability_max"),
-                "wind_speed_max_kmh": day.get("wind_speed_max_kmh"),
-                "rain_sum_mm": day.get("rain_sum_mm"),
-                "suggested_activity": self._activity_for_day(day.get("risk_level"), day.get("condition")),
-            })
+        schedule = build_activity_schedule(
+            destination_city, departure_date, return_date,
+            weather_result.get("forecast", []),
+            search_result=ActivitySearchTool().search(destination_city),
+        )
 
         if flights:
             schedule.insert(0, {
@@ -164,6 +160,8 @@ class PlannerAgent:
                 "recommended": hotel_options[0] if hotel_options else {},
                 "currency": hotel_result.get("currency"),
                 "error_code": hotel_result.get("error_code"),
+                "provider": hotel_result.get("provider"),
+                "data_mode": hotel_result.get("data_mode"),
             },
             "weather": weather_result,
             "schedule": schedule,
@@ -180,6 +178,9 @@ class PlannerAgent:
     def _search_flights(self, origin, destination, departure_date, return_date=None):
         try:
             return self.flight_service.get_flights(origin, destination, departure_date, return_date)
+        except FlightSearchError:
+            # Never replace failed live searches with invented flight offers.
+            raise
         except BaseException:
             flight = {
                 "airline": "TripPilot Mock Air",

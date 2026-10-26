@@ -1,4 +1,9 @@
 from unittest.mock import Mock
+import os
+from decimal import Decimal, InvalidOperation
+from dotenv import load_dotenv
+
+from tools.google_flights_tool import GoogleFlightsSearchTool
 
 from tools.flight_search import (
     FlightSearchTool
@@ -11,11 +16,15 @@ from utils.currency import (
 
 class FlightService:
 
-    def __init__(self):
+    def __init__(self, provider=None):
 
-        self.tool = (
-            FlightSearchTool()
+        load_dotenv()
+        self.provider = provider or os.getenv("TRIPPILOT_FLIGHT_PROVIDER") or (
+            "serpapi" if os.getenv("SERPAPI_API_KEY") else "duffel"
         )
+        if self.provider not in {"duffel", "serpapi"}:
+            raise ValueError("Flight provider must be 'duffel' or 'serpapi'")
+        self.tool = GoogleFlightsSearchTool() if self.provider == "serpapi" else FlightSearchTool()
 
     def get_flights(
         self,
@@ -32,6 +41,9 @@ class FlightService:
         )
 
         result = self.tool.search_flights(*search_args)
+
+        if "flights" in result:
+            return self._rank_flights(result["flights"])[:5]
 
         if isinstance(self.tool, Mock):
             flights = []
@@ -57,7 +69,7 @@ class FlightService:
         for offer in result.get(
             "data",
             []
-        )[:5]:
+        ):
 
             try:
 
@@ -128,7 +140,22 @@ class FlightService:
                     str(e)
                 )
 
-        return flights
+        return self._rank_flights(flights)[:5]
+
+    @staticmethod
+    def _rank_flights(flights):
+        def rank(flight):
+            try:
+                price = Decimal(str(flight.get("price")))
+                if not price.is_finite():
+                    price = Decimal("Infinity")
+            except (InvalidOperation, ValueError):
+                price = Decimal("Infinity")
+            return (
+                (flight.get("stops") or 0) + (flight.get("return_stops") or 0),
+                price, flight.get("duration_minutes") or float("inf"),
+            )
+        return sorted(flights, key=rank)
 
     def _extract_carriers(
         self,

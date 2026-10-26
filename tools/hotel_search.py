@@ -276,6 +276,11 @@ class HotelSearchTool:
         except Exception as exc:
             raise HotelError("provider_error", "Google Hotels search could not be completed.") from exc
 
+        return self.normalize_google_results(response, location, check_in, check_out, nights, guests, rooms)
+
+    @staticmethod
+    def normalize_google_results(response, location, check_in, check_out, nights, guests=1, rooms=1):
+        """Adapt an already-fetched Google result without repeating the search."""
         if not isinstance(response, dict) or response.get("status") == "error":
             raise HotelError("provider_error", "Google Hotels search returned an error.")
 

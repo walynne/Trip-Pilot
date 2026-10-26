@@ -19,7 +19,9 @@ def extract_weekday_range(message, today=None):
 
     weekday = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
     patterns = (
-        rf"\b(?:from\s+)?next\s+({weekday})\s+(?:to|through|until|[-\u2013])\s+(?:(?:next|this)\s+)?({weekday})\b",
+        rf"\b(?:from\s+)?(?:next\s+)?({weekday})\s+(?:to|through|until|[-\u2013]|and)\s+(?:(?:next|this)\s+)?({weekday})\b",
+        rf"\b(?:next\s+week|this\s+week)\b.*?\b(?:on|during|for|from)\s+({weekday})\s+(?:and|to|through|until|,|[-\u2013])\s+(?:(?:next|this)\s+)?({weekday})\b",
+        rf"\b(?:from\s+|on\s+|during\s+|for\s+|next\s+)?({weekday})\b.*?\b(?:return|come back|back|until|through)\s+(?:(?:on|next|this)\s+)?({weekday})\b",
         rf"\bnext\s+({weekday})\b.*?\b(?:return|come back|back)\s+(?:(?:on|next|this)\s+)?({weekday})\b",
     )
     match = next(
@@ -32,9 +34,14 @@ def extract_weekday_range(message, today=None):
     reference = today or date.today()
     start_weekday = WEEKDAYS[match.group(1).casefold()]
     end_weekday = WEEKDAYS[match.group(2).casefold()]
+
+    next_week_hint = bool(re.search(r"\bnext\s+week\b", message, re.IGNORECASE))
     days_until_start = (start_weekday - reference.weekday()) % 7
-    if days_until_start == 0:
+    if next_week_hint:
+        days_until_start += 7
+    elif days_until_start == 0:
         days_until_start = 7
+
     start = reference + timedelta(days=days_until_start)
     days_to_end = (end_weekday - start_weekday) % 7
     if days_to_end == 0:

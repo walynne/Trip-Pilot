@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from flask import (
@@ -9,14 +9,18 @@ from flask import (
 )
 
 from agents.planner_agent import PlannerAgent
+from agents.travel_planner_agent import TravelPlannerGraph
 from agents.trip_agent import TripAgent
 from tools.disruption_simulator import DisruptionSimulationError, DisruptionSimulator
+from tools.hotel_search import HotelSearchTool
+from tools.openmeteo_client import WeatherError
 
 
 app = Flask(__name__)
 
 trip_agent = TripAgent()
 planner_agent = PlannerAgent()
+travel_planner = TravelPlannerGraph()
 
 AIRPORT_TIMEZONES = {
     "HKG": "Asia/Hong_Kong",
@@ -65,9 +69,10 @@ def chat():
             }), 400
 
         booking_proposal = data.get("booking_proposal")
-        if _is_hotel_search_request(message):
+        if _is_hotel_search_request(message) and not _is_trip_plan_request(message):
             result = trip_agent.search_hotel_rates(message)
             result["recommendation"] = result.pop("message", "")
+            _attach_hotel_search_details(result)
             result["agent_steps"] = [
                 "Asked the model to check hotel IDs and stay dates",
                 "Executed Google Hotels search" if result.get("tool_results") else "Requested missing hotel search details",
@@ -75,25 +80,43 @@ def chat():
         elif _is_trip_plan_request(message):
             requirements = trip_agent.extract_trip_details(message)
             trip_agent._validate_trip(requirements)
-            result = planner_agent.plan_trip(requirements)
-            policy_proposal = _build_trip_policy_proposal(result, booking_proposal)
-            policy_result, booking_gate = trip_agent._evaluate_booking_proposal(
-                policy_proposal,
-                require_hotel=True,
-            )
+            result = travel_planner.run({
+                "user_request": message,
+                "origin": requirements.get("origin") or requirements.get("from") or requirements.get("departure_airport"),
+                "destination": requirements.get("destination") or requirements.get("city") or requirements.get("location"),
+                "departure_date": requirements.get("departure_date") or requirements.get("start_date"),
+                "return_date": requirements.get("return_date") or requirements.get("end_date"),
+                "guests": requirements.get("guests", 1),
+                "rooms": requirements.get("rooms", 1),
+                "hotel_nights": requirements.get("hotel_nights"),
+            })
+
+            final_itinerary = result.get("final_itinerary", {})
             result["requirements"] = requirements
             result["trip_details"] = requirements
-            result["policy_proposal"] = policy_proposal
-            result["policy_result"] = policy_result
-            result["booking_gate"] = booking_gate
+            result["recommendation"] = final_itinerary.get("status", "pending")
+            result["flights"] = result.get("flights", [])
+            result["weather"] = result.get("weather", {})
             result["agent_steps"] = [
                 "Extracted travel requirements",
-                "Compared flight options",
-                "Estimated hotel budget",
-                "Checked destination weather",
-                "Built a weather-aware schedule",
-                f"Policy check: {policy_result['status']}",
+                "Flight search complete",
+                "Hotel search complete",
+                "Weather check complete",
+                "Policy validation complete",
+                "Budget optimization complete",
+                "Approval state finalized",
+                "Booking status determined",
             ]
+            if booking_proposal is not None:
+                policy_proposal = _build_trip_policy_proposal(result, booking_proposal)
+                policy_result, booking_gate = trip_agent._evaluate_booking_proposal(
+                    policy_proposal,
+                    require_hotel=True,
+                )
+                result["policy_proposal"] = policy_proposal
+                result["policy_result"] = policy_result
+                result["booking_gate"] = booking_gate
+                result["agent_steps"].append(f"Booking gate: {booking_gate['status']}")
         elif booking_proposal is None:
             result = trip_agent.run(message)
         else:
@@ -157,8 +180,56 @@ def chat():
         }), 500
 
 
+def _attach_hotel_search_details(result):
+    """Expose hotel tool results to the UI and check weather for the same stay."""
+    for entry in result.get("tool_results", []):
+        if entry.get("name") != "search_google_hotels":
+            continue
+        raw = entry.get("result") or {}
+        if raw.get("error") or raw.get("status") == "error":
+            result["hotel"] = {
+                "status": "unavailable", "options": [],
+                "message": raw.get("error") or "Google Hotels search failed.",
+            }
+            continue
+        check_in, check_out = raw.get("check_in"), raw.get("check_out")
+        if not check_in or not check_out:
+            continue
+        location = raw.get("query") or ""
+        if location.lower().startswith("hotels in "):
+            location = location[len("Hotels in "):].strip()
+        nights = (date.fromisoformat(check_out) - date.fromisoformat(check_in)).days
+        hotels = HotelSearchTool.normalize_google_results(
+            raw, location, check_in, check_out, nights, raw.get("adults", 2),
+        )
+        options = hotels["hotels"]
+        result["hotel"] = {
+            **hotels, "options": options,
+            "recommended": options[0] if options else {},
+        }
+        result["summary"] = {
+            "destination": location, "departure_date": check_in,
+            "return_date": check_out, "guests": raw.get("adults", 2), "rooms": 1,
+        }
+        try:
+            result["weather"] = planner_agent.weather_tool.search_weather(location, check_in, check_out)
+        except (WeatherError, ValueError) as error:
+            result["weather"] = {
+                "status": "unavailable", "forecast": [],
+                "error_code": error.code if isinstance(error, WeatherError) else "forecast_dates_unavailable",
+                "message": str(error),
+            }
+
+
 def _is_trip_plan_request(message):
     normalized = message.lower()
+    # Business travel is a full trip even without the literal words "trip plan".
+    business_visit = (
+        any(phrase in normalized for phrase in ("visit ", "travel to ", "going to ", "fly to "))
+        and any(phrase in normalized for phrase in ("client meeting", "business meeting", "business trip", "conference"))
+    )
+    if business_visit:
+        return True
     return any(phrase in normalized for phrase in (
         "plan a trip",
         "plan trip",
@@ -180,8 +251,11 @@ def _is_hotel_search_request(message):
         "rates for hotel",
         "availability for hotel",
         "search hotels",
+        "search hotel",
         "search for hotels",
+        "search for hotel",
         "find hotels",
+        "find hotel",
         "find me a hotel",
         "google hotels",
         "hotel options",

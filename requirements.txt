@@ -1,5 +1,6 @@
 # Web Application
 flask==3.1.2
+fastapi>=0.115.0
 
 # HTTP Clients
 requests==2.32.5

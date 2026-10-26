@@ -429,6 +429,24 @@ def test_documented_weather_failure_composition_preserves_c1():
     assert result["weather"]["error_code"] == "forecast_unavailable"
 
 
+def test_trip_planner_keeps_hotels_when_weather_dates_are_unavailable(monkeypatch):
+    from agents.planner_agent import PlannerAgent
+
+    monkeypatch.setenv("TRIPPILOT_HOTEL_PROVIDER", "mock")
+    planner = PlannerAgent()
+    monkeypatch.setattr(planner, "_search_flights", lambda *args: [])
+    planner.weather_tool = Mock(provider="open_meteo")
+    planner.weather_tool.search_weather.side_effect = ValueError("live forecast dates must be within destination today through today + 15 days")
+    result = planner.plan_trip({
+        "origin": "HKG", "destination": "SIN",
+        "departure_date": "2030-11-15", "return_date": "2030-11-18",
+    })
+    assert result["hotel"]["recommended"]["name"]
+    assert result["weather"]["status"] == "unavailable"
+    assert result["weather"]["error_code"] == "forecast_dates_unavailable"
+    assert "15 days" in result["weather"]["message"]
+
+
 def test_trip_planner_includes_flights_hotel_budget_and_schedule(monkeypatch):
     from agents.planner_agent import PlannerAgent
     from tools.weather_search import WeatherSearchTool

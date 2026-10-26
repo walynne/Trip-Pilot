@@ -1638,6 +1638,8 @@ function renderFlightDetails(flight) {
     const originalFare = [flight.original_price, flight.original_currency].filter(value => value !== null && value !== undefined && value !== "").join(" ");
     return renderTripDetailGrid([
         { label: "Airline", value: flight.airline },
+        { label: "Source", value: flight.provider },
+        { label: "Fare information", value: flight.fare_note },
         { label: "Outbound route", value: `${flight.origin || "-"} → ${flight.destination || "-"}` },
         { label: "Departure", value: flight.departure },
         { label: "Arrival", value: flight.arrival },
@@ -1669,7 +1671,7 @@ function renderHotelDetails(hotel, summary) {
         { label: "Location", value: [hotel.city, hotel.country_code].filter(Boolean).join(", ") },
         { label: "Stay", value: `${summary.departure_date || "-"} → ${summary.return_date || "-"}` },
         { label: "Room and nights", value: stay },
-        { label: "Nightly rate", value: price(pricing.room_nightly_rate) },
+        { label: "Nightly rate", value: price(pricing.room_nightly_rate ?? pricing.nightly_rate) },
         { label: "Subtotal", value: price(pricing.subtotal) },
         { label: "Taxes", value: price(pricing.taxes) },
         { label: "Fees", value: price(pricing.fees) },
@@ -1695,6 +1697,27 @@ function renderFlightAlternatives(flights) {
             `).join("")}
         </ul>
     `;
+}
+
+function renderHotelSearchStatus(hotel) {
+    const messages = [];
+    if (hotel.message) messages.push(hotel.message);
+    else if (hotel.status === "no_results") messages.push("No hotels were returned for these dates.");
+    else if (hotel.status === "unavailable") messages.push(`Hotel search unavailable: ${hotel.error_code || "provider error"}.`);
+    if (hotel.data_mode === "mock") messages.push("Demo hotel data only — not live availability or bookable rates.");
+    return messages.map(message => `<p class="policy-empty">${escapeHtml(message)}</p>`).join("");
+}
+
+function renderWeatherDetails(weather) {
+    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
+    if (!forecast.length) {
+        const message = weather.message || (weather.error_code
+            ? `Weather unavailable: ${weather.error_code}.`
+            : "No weather forecast returned. Live forecasts cover only today through the next 15 days.");
+        return `<p class="policy-empty">${escapeHtml(message)}</p>`;
+    }
+    const provenance = weather.data_mode === "mock" ? "Demo weather, not a live forecast." : "Destination weather forecast";
+    return `<p>${escapeHtml(provenance)}</p><ul class="trip-plan-list">${renderScheduleItems(forecast)}</ul>`;
 }
 
 function renderHotelAlternatives(hotels, summary) {
@@ -1738,7 +1761,11 @@ function renderScheduleItems(schedule) {
             <li>
                 <span class="trip-plan-badge ${escapeHtml(risk)}">${escapeHtml(String(item.risk_level || "info"))}</span>
                 <strong>${escapeHtml(item.date || "Day")}: ${escapeHtml(item.condition || "Plan")}</strong>
-                <div>${escapeHtml(item.suggested_activity || "No activity suggestion available.")}</div>
+                <div>${escapeHtml(item.suggested_activity || "Keep a flexible day for local food, nearby sightseeing, and rest. Check opening hours and travel time before heading out.")}</div>
+                ${item.planning_note ? `<small>${escapeHtml(item.planning_note)}</small>` : ""}
+                <small>${item.activity_source === "live_search" ? "Live search suggestion" : "Offline planning advice"}${item.searched_at ? ` · Search fetched: ${escapeHtml(item.searched_at)}` : ""}</small>
+                ${item.search_message ? `<div><small>${escapeHtml(item.search_message)}</small></div>` : ""}
+                ${/^https:\/\/www\.(?:gotokyo\.org|visitsingapore\.com|google\.com)\//.test(item.source_url || "") ? `<div><a href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener noreferrer">View travel source</a></div>` : ""}
                 ${weather.length ? `<small class="trip-weather-meta">${weather.map(escapeHtml).join(" · ")}</small>` : ""}
             </li>
         `;
@@ -1841,6 +1868,7 @@ function renderTripPlan(data) {
             </div>
             <div class="trip-plan-section">
                 <h5>Recommended hotel details</h5>
+                ${renderHotelSearchStatus(hotel)}
                 ${renderHotelDetails(recommendedHotel, summary)}
             </div>
             <div class="trip-plan-section">
@@ -1850,6 +1878,10 @@ function renderTripPlan(data) {
                 </details>
             </div>
             <div class="trip-plan-value" style="margin-bottom:8px;">${escapeHtml(data.recommendation || "No recommendation generated yet.")}</div>
+            <div class="trip-plan-section">
+                <h5>Weather forecast</h5>
+                ${renderWeatherDetails(weather)}
+            </div>
             <div>
                 <strong>Schedule</strong>
                 <ul class="trip-plan-list">
@@ -1916,6 +1948,7 @@ function renderTripMessage(data) {
             </details>
             <div class="recommendation-section">
                 <h4>Recommended hotel details</h4>
+                ${renderHotelSearchStatus(hotel)}
                 ${renderHotelDetails(recommendedHotel, summary)}
             </div>
             <details class="recommendation-section trip-options">
@@ -1929,6 +1962,10 @@ function renderTripMessage(data) {
             <div class="recommendation-section">
                 <h4>Suggested schedule</h4>
                 <ul class="trip-plan-list">${planItems}</ul>
+            </div>
+            <div class="recommendation-section">
+                <h4>Weather forecast</h4>
+                ${renderWeatherDetails(weather)}
             </div>
         </div>
     `;

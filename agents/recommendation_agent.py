@@ -60,7 +60,8 @@ class RecommendationAgent:
             "Reason",
             "",
             "- Prioritized direct service first, then price.",
-            "- Airline and schedule are copied directly from the Duffel offer data.",
+            "- Airline and schedule are copied from the configured flight provider.",
+            f"- {best_flight.get('fare_note') or 'Search offer only; price and availability may change. No booking placed.'}",
             "",
             "Alternative Option"
         ])

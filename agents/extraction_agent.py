@@ -202,12 +202,20 @@ Return JSON only.
             trip.get("return_date")
         )
 
-        weekday_range = extract_weekday_range(user_message)
+        reference_day = date.today()
+        weekday_range = extract_weekday_range(user_message, today=reference_day)
         if weekday_range:
             trip["departure_date"], trip["return_date"] = weekday_range
 
+        trip["hotel_nights"] = None
         hotel_nights = re.search(r"\b(\d{1,2})\s+nights?\b", user_message, re.IGNORECASE)
         if hotel_nights:
             trip["hotel_nights"] = int(hotel_nights.group(1))
+
+        if weekday_range:
+            departure, return_date = weekday_range
+            date_diff = (date.fromisoformat(return_date) - date.fromisoformat(departure)).days
+            if date_diff > 0 and trip.get("hotel_nights") is None:
+                trip["hotel_nights"] = date_diff
 
         return trip

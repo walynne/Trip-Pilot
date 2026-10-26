@@ -74,3 +74,12 @@ def test_extraction_reads_explicit_hotel_nights(monkeypatch):
     assert extracted["departure_date"] == "2026-10-26"
     assert extracted["return_date"] == "2026-10-30"
     assert extracted["hotel_nights"] == 1
+
+
+def test_next_week_tuesday_to_wednesday_resolves_to_following_week():
+    dates = extract_weekday_range(
+        "I need to visit Singapore next week for client meetings on Tuesday and Wednesday",
+        today=date(2026, 10, 26),
+    )
+
+    assert dates == ("2026-11-03", "2026-11-04")

@@ -1,4 +1,13 @@
+import pytest
+
 import app as app_module
+
+
+def test_business_visit_routes_to_full_trip_planning():
+    assert app_module._is_trip_plan_request(
+        "I need to visit tokyo next week for client meetings on Tuesday and Wednesday"
+    )
+    assert not app_module._is_trip_plan_request("Find a flight to Tokyo")
 
 
 def test_chat_forwards_booking_proposal_to_trip_agent(monkeypatch):
@@ -62,8 +71,8 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
                 {"status": "blocked_missing_facts", "booked": False, "message": "Facts required."},
             )
 
-    class FakePlannerAgent:
-        def plan_trip(self, trip):
+    class FakeTravelPlanner:
+        def run(self, trip):
             captured["planned"] = trip
             return {
                 "summary": {"destination": "Singapore"},
@@ -75,7 +84,7 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
             }
 
     monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
-    monkeypatch.setattr(app_module, "planner_agent", FakePlannerAgent())
+    monkeypatch.setattr(app_module, "travel_planner", FakeTravelPlanner())
 
     class DisruptionSimulatorMustNotRun:
         def simulate(self, *args, **kwargs):
@@ -84,7 +93,7 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
     monkeypatch.setattr(app_module, "DisruptionSimulator", DisruptionSimulatorMustNotRun)
     response = app_module.app.test_client().post(
         "/chat",
-        json={"message": "Plan a trip to Singapore"},
+        json={"message": "Plan a trip to Singapore", "booking_proposal": {}},
     )
 
     result = response.get_json()
@@ -94,9 +103,9 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
     assert result["hotel"]["budget_total"] == 450
     assert result["hotel"]["status"] == "success"
     assert result["weather"]["status"] == "success"
-    assert result["recommendation"] == "Full trip recommendation"
+    assert result["recommendation"] == "pending"
     assert result["trip_details"] == requirements
-    assert captured["planned"] == requirements
+    assert all(captured["planned"][key] == value for key, value in requirements.items())
     assert captured["require_hotel"] is True
     assert captured["policy_proposal"]["flight"]["cabin"] == "economy"
     assert result["policy_result"]["status"] == "needs_facts"
@@ -105,7 +114,14 @@ def test_chat_routes_trip_plan_requests_to_planner(monkeypatch):
     assert "replan_result" not in result
 
 
-def test_chat_routes_hotel_rate_requests_to_llm_tool_flow(monkeypatch):
+@pytest.mark.parametrize("message", [
+    "Check hotel availability for lp123 from 2026-11-15 to 2026-11-17",
+    "Search hotel in Singapore from 2026-11-15 to 2026-11-18",
+    "Search for hotel in Singapore",
+    "Find hotel in Singapore",
+    "Search hotels in Singapore",
+])
+def test_chat_routes_hotel_rate_requests_to_llm_tool_flow(monkeypatch, message):
     captured = {}
 
     class FakeTripAgent:
@@ -123,12 +139,69 @@ def test_chat_routes_hotel_rate_requests_to_llm_tool_flow(monkeypatch):
     monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
     response = app_module.app.test_client().post(
         "/chat",
-        json={"message": "Check hotel availability for lp123 from 2026-11-15 to 2026-11-17"},
+        json={"message": message},
     )
 
     result = response.get_json()
     assert response.status_code == 200
-    assert captured["message"] == "Check hotel availability for lp123 from 2026-11-15 to 2026-11-17"
+    assert captured["message"] == message
     assert result["recommendation"] == "Two live offers found."
     assert result["tool_calls"][0]["name"] == "search_google_hotels"
     assert result["tool_results"][0]["result"] == {"properties": []}
+
+
+def test_hotel_results_and_weather_are_exposed_to_ui(monkeypatch):
+    from tools.weather_search import WeatherSearchTool
+
+    class FakeTripAgent:
+        def search_hotel_rates(self, message):
+            return {
+                "message": "Hotel found",
+                "tool_results": [{"name": "search_google_hotels", "result": {
+                    "status": "success", "query": "Hotels in Singapore",
+                    "check_in": "2026-11-15", "check_out": "2026-11-18",
+                    "adults": 1, "properties": [{
+                        "name": "Test Singapore Hotel", "price_per_night": 100,
+                        "total_price": 300, "currency": "SGD",
+                    }],
+                }}],
+            }
+
+    monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
+    monkeypatch.setattr(app_module.planner_agent, "weather_tool", WeatherSearchTool("mock"))
+    response = app_module.app.test_client().post("/chat", json={
+        "message": "Search hotel in Singapore from 2026-11-15 to 2026-11-18",
+    })
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["hotel"]["recommended"]["name"] == "Test Singapore Hotel"
+    assert result["hotel"]["recommended"]["pricing"]["total"] == "300.00"
+    assert result["summary"]["destination"] == "Singapore"
+    assert len(result["weather"]["forecast"]) == 4
+
+
+def test_hotel_results_survive_unavailable_weather(monkeypatch):
+    class UnavailableWeather:
+        def search_weather(self, *args):
+            raise ValueError("live forecast dates must be within destination today through today + 15 days")
+
+    monkeypatch.setattr(app_module.planner_agent, "weather_tool", UnavailableWeather())
+    result = {"tool_results": [{"name": "search_google_hotels", "result": {
+        "query": "Hotels in Singapore", "check_in": "2030-11-15",
+        "check_out": "2030-11-18", "properties": [{
+            "name": "Test Hotel", "price_per_night": 100,
+        }],
+    }}]}
+    app_module._attach_hotel_search_details(result)
+    assert result["hotel"]["recommended"]["name"] == "Test Hotel"
+    assert result["weather"]["status"] == "unavailable"
+    assert "15 days" in result["weather"]["message"]
+
+
+def test_hotel_provider_error_is_exposed_to_ui():
+    result = {"tool_results": [{"name": "search_google_hotels", "result": {
+        "status": "error", "error": "SerpApi request failed",
+    }}]}
+    app_module._attach_hotel_search_details(result)
+    assert result["hotel"]["status"] == "unavailable"
+    assert result["hotel"]["message"] == "SerpApi request failed"

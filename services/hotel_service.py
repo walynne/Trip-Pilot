@@ -61,8 +61,29 @@ class HotelService:
                 rooms=rooms
             )
         except HotelError:
-            raise
+            if self.provider == "mock":
+                raise
+            return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
 
+        if self.provider != "mock" and result.get("status") == "no_results":
+            return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
+
+        return self._normalize_result(result)
+
+    def _fallback_to_mock(self, location, check_in, check_out, guests, rooms, failed_provider):
+        mock_tool = HotelSearchTool(provider="mock")
+        result = mock_tool.search_hotels(
+            location=location,
+            check_in=check_in,
+            check_out=check_out,
+            guests=guests,
+            rooms=rooms,
+        )
+        result["provider"] = "mock"
+        result["data_mode"] = "mock"
+        result["live_provider_fallback"] = failed_provider
+        if result.get("status") == "success":
+            result["status"] = "success"
         return self._normalize_result(result)
 
     def _normalize_result(self, result):
