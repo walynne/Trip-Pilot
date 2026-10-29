@@ -278,38 +278,128 @@ class TripAgent:
                 str(error)
             )
 
+        approval_request = self._build_approval_request(proposal, policy_result)
+        if approval_request.get("required_approver"):
+            policy_result["required_approver"] = approval_request["required_approver"]
+            policy_result["approval_type"] = approval_request["approval_type"]
+            policy_result["approval_reason"] = approval_request["reason"]
+
         return policy_result, self._booking_gate(
             policy_result.get("status"),
             policy_result.get("explanation", "Policy result is unavailable."),
-            policy_result.get("required_approver")
+            approval_request.get("required_approver") or policy_result.get("required_approver"),
+            approval_type=approval_request.get("approval_type"),
+            approval_request=approval_request,
         )
 
-    def _booking_gate(self, policy_status, explanation, approver=None):
-        if policy_status == "compliant" and approver:
-            status = "awaiting_approval"
-            message = f"Policy requires approval from {approver}. No booking was placed."
-        elif policy_status == "compliant":
-            status = "policy_cleared_not_booked"
-            message = "Policy checks passed, but no booking operation is available."
-        elif policy_status == "escalate":
-            status = "human_review_required"
-            message = "Policy requires human review. No booking was placed."
-        elif policy_status == "non_compliant":
-            status = "blocked_by_policy"
-            message = "The proposal violates policy. No booking was placed."
-        elif policy_status == "needs_facts":
-            status = "blocked_missing_facts"
-            message = "Required policy facts are missing. No booking was placed."
-        else:
-            status = "blocked_policy_error"
-            message = "Policy could not be verified. No booking was placed."
+    def _build_approval_request(self, proposal, policy_result):
+        if not isinstance(proposal, dict):
+            return {
+                "requires_human_approval": False,
+                "approval_type": None,
+                "required_approver": None,
+                "reason": "No proposal provided.",
+                "status": "not_needed",
+            }
+
+        total_cost = proposal.get("total_cost_usd")
+        flight = proposal.get("flight") or {}
+        hotel = proposal.get("hotel") or {}
+        traveler_role = proposal.get("traveler_role") or "employee"
+        policy_status = (policy_result or {}).get("status")
+        required_approver = (policy_result or {}).get("required_approver")
+
+        if policy_status in {"non_compliant", "escalate"}:
+            return {
+                "requires_human_approval": True,
+                "approval_type": "policy_exception",
+                "required_approver": "travel_policy_approver",
+                "reason": "Policy exception review required before booking.",
+                "status": "pending",
+            }
+
+        if policy_status == "compliant" and required_approver:
+            return {
+                "requires_human_approval": True,
+                "approval_type": "manager",
+                "required_approver": required_approver,
+                "reason": "Manager approval is required before booking.",
+                "status": "pending",
+            }
+
+        if isinstance(total_cost, (int, float)) and total_cost > 3000:
+            return {
+                "requires_human_approval": True,
+                "approval_type": "budget_override",
+                "required_approver": "finance_manager",
+                "reason": "Trip exceeds the budget threshold and needs override approval.",
+                "status": "pending",
+            }
+
+        if flight.get("cabin") == "business" and traveler_role != "executive":
+            return {
+                "requires_human_approval": True,
+                "approval_type": "manager",
+                "required_approver": "department_head",
+                "reason": "Business cabin exceeds the standard traveler policy.",
+                "status": "pending",
+            }
+
+        nightly_rate = hotel.get("nightly_rate_usd")
+        if isinstance(nightly_rate, (int, float)) and nightly_rate > 300:
+            return {
+                "requires_human_approval": True,
+                "approval_type": "manager",
+                "required_approver": "department_head",
+                "reason": "Hotel nightly rate exceeds the standard policy threshold.",
+                "status": "pending",
+            }
 
         return {
-            "status": status,
-            "booked": False,
-            "message": message,
-            "policy_explanation": explanation,
+            "requires_human_approval": False,
+            "approval_type": None,
+            "required_approver": None,
+            "reason": "No additional human approval required.",
+            "status": "approved",
         }
+
+    def _booking_gate(self, policy_status, explanation, approver=None, approval_type=None, approval_request=None):
+        gate = {
+            "status": "policy_cleared_not_booked",
+            "booked": False,
+            "message": "Policy checks passed, but no booking operation is available.",
+            "policy_explanation": explanation,
+            "approval_required": False,
+            "approval_type": approval_type,
+            "required_approver": approver,
+        }
+
+        if policy_status == "compliant" and approver:
+            gate["status"] = "awaiting_approval"
+            gate["approval_required"] = True
+            gate["message"] = f"Policy requires approval from {approver}. No booking was placed."
+        elif policy_status == "compliant":
+            gate["status"] = "policy_cleared_not_booked"
+            gate["message"] = "Policy checks passed, but no booking operation is available."
+        elif policy_status == "escalate":
+            gate["status"] = "human_review_required"
+            gate["approval_required"] = True
+            gate["message"] = "Policy requires human review. No booking was placed."
+        elif policy_status == "non_compliant":
+            gate["status"] = "blocked_by_policy"
+            gate["approval_required"] = False
+            gate["message"] = "The proposal violates policy. No booking was placed."
+        elif policy_status == "needs_facts":
+            gate["status"] = "blocked_missing_facts"
+            gate["message"] = "Required policy facts are missing. No booking was placed."
+        elif policy_status in {"error", "policy_evaluation_failed"}:
+            gate["status"] = "blocked_policy_error"
+            gate["message"] = "Policy could not be verified. No booking was placed."
+
+        if approval_request is not None:
+            gate["approval_request"] = approval_request
+
+        return gate
 
     def _policy_error(self, code, message):
         return {
