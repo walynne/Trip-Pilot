@@ -1,0 +1,234 @@
+{
+  "source": "demo",
+  "status": "fallback",
+  "api_status": "unavailable",
+  "generated_at": "2026-10-28T12:00:00Z",
+  "trip": {
+    "origin": "HKG",
+    "destination": "TYO",
+    "departure_date": "2026-11-15",
+    "return_date": "2026-11-20",
+    "guests": 2,
+    "rooms": 1,
+    "hotel_nights": 5
+  },
+  "flights": [
+    {
+      "airline": "Cathay Demo",
+      "airlines": ["CX"],
+      "airline_names": ["Cathay Pacific"],
+      "price": "640.00",
+      "currency": "USD",
+      "original_price": "640.00",
+      "original_currency": "USD",
+      "origin": "HKG",
+      "destination": "HND",
+      "departure": "2026-11-15T09:20:00+08:00",
+      "arrival": "2026-11-15T12:05:00+09:00",
+      "stops": 0,
+      "duration_minutes": 345,
+      "provider": "demo",
+      "data_mode": "mock",
+      "fare_note": "Demo data used because the live API returned no result."
+    },
+    {
+      "airline": "Jet Demo",
+      "airlines": ["JD"],
+      "airline_names": ["Jet Demo Air"],
+      "price": "690.00",
+      "currency": "USD",
+      "original_price": "690.00",
+      "original_currency": "USD",
+      "origin": "HKG",
+      "destination": "NRT",
+      "departure": "2026-11-15T10:45:00+08:00",
+      "arrival": "2026-11-15T14:15:00+09:00",
+      "stops": 0,
+      "duration_minutes": 390,
+      "provider": "demo",
+      "data_mode": "mock",
+      "fare_note": "Demo data used because the live API returned no result."
+    }
+  ],
+  "hotel": {
+    "status": "success",
+    "check_in": "2026-11-15",
+    "check_out": "2026-11-20",
+    "nights": 5,
+    "guests": 2,
+    "rooms": 1,
+    "currency": "USD",
+    "provider": "demo",
+    "data_mode": "mock",
+    "hotels": [
+      {
+        "id": "demo-hotel-hk-001",
+        "name": "Shibuya Business Hotel",
+        "city": "Tokyo",
+        "country_code": "JP",
+        "tier": "business",
+        "rating": 4.5,
+        "review_count": 2140,
+        "amenities": ["WiFi", "Breakfast", "Gym", "Near Station"],
+        "pricing": {
+          "currency": "USD",
+          "nightly_rate": 185,
+          "subtotal": 925,
+          "taxes": 88,
+          "fees": 20,
+          "total": 1033,
+          "payment_type": "pay_at_property"
+        },
+        "free_cancellation": true,
+        "availability_status": "available"
+      },
+      {
+        "id": "demo-hotel-hk-002",
+        "name": "Tokyo Garden Suites",
+        "city": "Tokyo",
+        "country_code": "JP",
+        "tier": "upscale",
+        "rating": 4.7,
+        "review_count": 1785,
+        "amenities": ["WiFi", "Breakfast", "Workspace", "Airport Shuttle"],
+        "pricing": {
+          "currency": "USD",
+          "nightly_rate": 220,
+          "subtotal": 1100,
+          "taxes": 96,
+          "fees": 32,
+          "total": 1228,
+          "payment_type": "pay_at_property"
+        },
+        "free_cancellation": true,
+        "availability_status": "available"
+      }
+    ]
+  },
+  "weather": {
+    "status": "success",
+    "location": "Tokyo",
+    "provider": "demo",
+    "data_mode": "mock",
+    "forecast": [
+      {
+        "date": "2026-11-15",
+        "temperature_max_c": 18,
+        "temperature_min_c": 13,
+        "precipitation_probability_max": 25,
+        "wind_speed_max_kmh": 18,
+        "weather_code": 2,
+        "condition": "Clear",
+        "risk_level": "low",
+        "disruption_indicators": []
+      },
+      {
+        "date": "2026-11-16",
+        "temperature_max_c": 17,
+        "temperature_min_c": 12,
+        "precipitation_probability_max": 35,
+        "wind_speed_max_kmh": 20,
+        "weather_code": 3,
+        "condition": "Partly cloudy",
+        "risk_level": "low",
+        "disruption_indicators": []
+      },
+      {
+        "date": "2026-11-17",
+        "temperature_max_c": 16,
+        "temperature_min_c": 12,
+        "precipitation_probability_max": 58,
+        "wind_speed_max_kmh": 26,
+        "weather_code": 61,
+        "condition": "Light rain",
+        "risk_level": "moderate",
+        "disruption_indicators": ["rain_probability_increasing"]
+      },
+      {
+        "date": "2026-11-18",
+        "temperature_max_c": 15,
+        "temperature_min_c": 11,
+        "precipitation_probability_max": 72,
+        "wind_speed_max_kmh": 31,
+        "weather_code": 63,
+        "condition": "Rainy",
+        "risk_level": "moderate",
+        "disruption_indicators": ["rain_probability_high"]
+      },
+      {
+        "date": "2026-11-20",
+        "temperature_max_c": 17,
+        "temperature_min_c": 12,
+        "precipitation_probability_max": 28,
+        "wind_speed_max_kmh": 16,
+        "weather_code": 2,
+        "condition": "Clear",
+        "risk_level": "low",
+        "disruption_indicators": []
+      }
+    ],
+    "disruption_events": [
+      {
+        "event_type": "weather_disruption",
+        "location": "Tokyo",
+        "affected_date": "2026-11-18",
+        "severity": "moderate",
+        "requires_replanning_assessment": true,
+        "signal_type": "simulated",
+        "confirmed_disruption": false
+      }
+    ],
+    "official_alerts": []
+  },
+  "schedule": [
+    {
+      "date": "2026-11-15",
+      "condition": "Flight departure",
+      "risk_level": "info",
+      "suggested_activity": "Depart HKG for Tokyo on 2026-11-15"
+    },
+    {
+      "date": "2026-11-16",
+      "condition": "Good travel conditions",
+      "risk_level": "low",
+      "suggested_activity": "Client meetings in central Tokyo and team check-ins"
+    },
+    {
+      "date": "2026-11-17",
+      "condition": "Mild rain risk",
+      "risk_level": "moderate",
+      "suggested_activity": "Use indoor venues and keep flexible meeting slots"
+    },
+    {
+      "date": "2026-11-18",
+      "condition": "Rainy",
+      "risk_level": "moderate",
+      "suggested_activity": "Prioritize indoor meetings and provide backup commuting options"
+    },
+    {
+      "date": "2026-11-20",
+      "condition": "Return flight",
+      "risk_level": "info",
+      "suggested_activity": "Return from Tokyo to Hong Kong on 2026-11-20"
+    }
+  ],
+  "recommendation": {
+    "status": "recommended",
+    "summary": "This is a practical business trip with a direct flight, a central Tokyo hotel, and manageable weather risk. Keep one indoor fallback plan for the rainier mid-trip day.",
+    "best_flight": "Cathay Demo",
+    "best_hotel": "Shibuya Business Hotel",
+    "risk_note": "A moderate rain risk appears mid-trip, but overall conditions remain suitable for a business schedule."
+  },
+  "policy_result": {
+    "status": "compliant",
+    "message": "Demo policy check passed for a standard business trip using fallback data."
+  },
+  "approval": {
+    "status": "approved",
+    "weather_risk": "moderate"
+  },
+  "booking_result": {
+    "status": "not_booked",
+    "message": "Demo mode only; no real booking was placed."
+  }
+}

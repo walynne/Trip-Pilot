@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 
 from tools.hotel_search import HotelError, HotelSearchTool
+from utils.demo_data import load_demo_trip_data
 
 
 class HotelService:
@@ -60,15 +61,44 @@ class HotelService:
                 guests=guests,
                 rooms=rooms
             )
-        except HotelError:
+        except Exception:
             if self.provider == "mock":
                 raise
+            return self._fallback_to_demo(location, check_in, check_out, guests, rooms, self.provider)
+
+        if isinstance(result, dict) and result.get("status") == "error":
+            return self._fallback_to_demo(location, check_in, check_out, guests, rooms, self.provider)
+
+        if result is None:
+            return self._fallback_to_demo(location, check_in, check_out, guests, rooms, self.provider)
+
+        if not isinstance(result, dict):
+            return self._fallback_to_demo(location, check_in, check_out, guests, rooms, self.provider)
+
+        if self.provider != "mock" and result.get("status") == "no_results":
             return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
 
         if self.provider != "mock" and result.get("status") == "no_results":
             return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
 
         return self._normalize_result(result)
+
+    def _fallback_to_demo(self, location, check_in, check_out, guests, rooms, failed_provider):
+        payload = load_demo_trip_data()
+        hotel_result = payload.get("hotel", {})
+        hotel_result = {
+            **hotel_result,
+            "location": location,
+            "check_in": check_in,
+            "check_out": check_out,
+            "guests": guests,
+            "rooms": rooms,
+            "provider": "demo",
+            "data_mode": "mock",
+            "live_provider_fallback": failed_provider,
+            "status": "success",
+        }
+        return self._normalize_result(hotel_result)
 
     def _fallback_to_mock(self, location, check_in, check_out, guests, rooms, failed_provider):
         mock_tool = HotelSearchTool(provider="mock")

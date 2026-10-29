@@ -12,6 +12,7 @@ from utils.currency import (
     DEFAULT_TARGET_CURRENCY,
     convert_amount
 )
+from utils.demo_data import load_demo_trip_data
 
 
 class FlightService:
@@ -40,7 +41,13 @@ class FlightService:
             else (origin, destination, departure_date, return_date)
         )
 
-        result = self.tool.search_flights(*search_args)
+        try:
+            result = self.tool.search_flights(*search_args)
+        except Exception:
+            return self._demo_flights()
+
+        if result is None:
+            return self._demo_flights()
 
         if "flights" in result:
             return self._rank_flights(result["flights"])[:5]
@@ -141,6 +148,15 @@ class FlightService:
                 )
 
         return self._rank_flights(flights)[:5]
+
+    @staticmethod
+    def _demo_flights():
+        payload = load_demo_trip_data()
+        flights = payload.get("flights", [])
+        for flight in flights:
+            flight.setdefault("provider", "demo")
+            flight.setdefault("data_mode", "mock")
+        return flights
 
     @staticmethod
     def _rank_flights(flights):
