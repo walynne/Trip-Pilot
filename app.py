@@ -18,6 +18,8 @@ from tools.openmeteo_client import WeatherError
 
 app = Flask(__name__)
 
+approval_requests = {}
+
 trip_agent = TripAgent()
 planner_agent = PlannerAgent()
 travel_planner = TravelPlannerGraph()
@@ -47,6 +49,40 @@ def health():
         "status": "ok",
         "service": "TripPilot"
     })
+
+
+@app.route("/approval", methods=["POST"])
+def approval_decision():
+    """Process a human approval decision for a pending trip proposal."""
+    data = request.get_json(silent=True) or {}
+    trip_id = data.get("trip_id") or data.get("tripId") or "trip-unknown"
+    approval_type = data.get("approval_type") or data.get("approvalType") or "manager"
+    decision = data.get("decision") or "approved"
+    approver = (data.get("approver") or "").strip() or "unknown_approver"
+    reason = (data.get("reason") or data.get("notes") or "").strip()
+    override_amount = data.get("override_amount")
+
+    if override_amount not in (None, "", " "):
+        try:
+            override_amount = float(override_amount)
+        except (TypeError, ValueError):
+            return jsonify({"error": "override_amount must be numeric or blank."}), 400
+
+    if decision not in {"approved", "rejected", "needs_revision"}:
+        return jsonify({"error": "Decision must be one of approved, rejected, or needs_revision."}), 400
+
+    record = {
+        "trip_id": trip_id,
+        "approval_type": approval_type,
+        "decision": decision,
+        "approver": approver,
+        "reason": reason,
+        "override_amount": override_amount,
+        "notes": reason,
+        "status": "recorded",
+    }
+    approval_requests[trip_id] = record
+    return jsonify(record)
 
 
 @app.route("/chat", methods=["POST"])
@@ -117,6 +153,22 @@ def chat():
                 result["policy_result"] = policy_result
                 result["booking_gate"] = booking_gate
                 result["agent_steps"].append(f"Booking gate: {booking_gate['status']}")
+        elif not _looks_like_travel_request(message):
+            assistant_reply = trip_agent.llm.chat(
+                "You are a helpful travel assistant. Respond naturally to general conversation. "
+                "If the user asks for a business trip plan, ask for origin, destination, and dates. "
+                "For greetings and simple conversation, respond warmly and briefly. "
+                "Keep responses concise and friendly.",
+                message,
+            )
+            result = {
+                "agent_steps": ["General chat response"],
+                "recommendation": assistant_reply or "Hi! I can help with corporate travel planning, flight and hotel searches, and policy review.",
+                "flights": [],
+                "event": None,
+                "monitor_result": None,
+                "replan_result": None,
+            }
         elif booking_proposal is None:
             result = trip_agent.run(message)
         else:
@@ -261,6 +313,32 @@ def _is_hotel_search_request(message):
         "hotel options",
         "hotel recommendations",
     ))
+
+
+def _looks_like_travel_request(message):
+    normalized = message.lower().strip()
+    if not normalized:
+        return False
+    travel_keywords = (
+        "flight",
+        "flights",
+        "trip",
+        "travel",
+        "itinerary",
+        "hotel",
+        "airport",
+        "from ",
+        "to ",
+        "depart",
+        "return",
+        "business trip",
+        "conference",
+        "client meeting",
+        "visit ",
+        "travel to ",
+        "fly to ",
+    )
+    return any(keyword in normalized for keyword in travel_keywords)
 
 
 def _build_trip_policy_proposal(plan, submitted):
