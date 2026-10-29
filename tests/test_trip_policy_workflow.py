@@ -1,3 +1,4 @@
+from app import app
 from agents.trip_agent import TripAgent
 
 
@@ -138,3 +139,46 @@ def test_trip_run_includes_policy_gate_for_booking_proposal():
     assert result["policy_result"]["status"] == "compliant"
     assert result["booking_gate"]["status"] == "awaiting_approval"
     assert result["booking_gate"]["booked"] is False
+
+
+def test_greeting_without_trip_plan_uses_direct_chat_response():
+    client = app.test_client()
+
+    response = client.post("/chat", json={"message": "hello"})
+
+    assert response.status_code == 200
+    assert isinstance(response.json["recommendation"], str)
+    assert "hello".lower() in response.json["recommendation"].lower() or "travel" in response.json["recommendation"].lower()
+
+
+def test_manager_approval_and_budget_override_are_detected():
+    trip_agent = TripAgent.__new__(TripAgent)
+
+    manager_approval = trip_agent._build_approval_request(
+        {"traveler_role": "employee", "total_cost_usd": 2100},
+        {"status": "compliant", "required_approver": "department_head"},
+    )
+    assert manager_approval["requires_human_approval"] is True
+    assert manager_approval["approval_type"] == "manager"
+    assert manager_approval["required_approver"] == "department_head"
+
+    budget_override = trip_agent._build_approval_request(
+        {"traveler_role": "employee", "total_cost_usd": 5200},
+        {"status": "compliant", "required_approver": None},
+    )
+    assert budget_override["requires_human_approval"] is True
+    assert budget_override["approval_type"] == "budget_override"
+    assert budget_override["required_approver"] == "finance_manager"
+
+
+def test_policy_exception_approval_is_created_for_non_compliance():
+    trip_agent = TripAgent.__new__(TripAgent)
+
+    exception_approval = trip_agent._build_approval_request(
+        {"traveler_role": "employee", "total_cost_usd": 1400},
+        {"status": "non_compliant", "required_approver": None, "violated_rules": ["CABIN_LIMIT"]},
+    )
+
+    assert exception_approval["requires_human_approval"] is True
+    assert exception_approval["approval_type"] == "policy_exception"
+    assert exception_approval["required_approver"] == "travel_policy_approver"
