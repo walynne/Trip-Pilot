@@ -79,24 +79,31 @@
 
         .message {
 
-            padding: 12px;
+            padding: 12px 14px;
 
-            border-radius: 10px;
+            border-radius: 16px;
 
             margin-bottom: 10px;
 
             white-space: pre-wrap;
             line-height: 1.5;
+            max-width: 78%;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
 
         .user {
 
-            background: #dbeafe;
+            background: #2563eb;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
         }
 
         .agent {
 
-            background: #dcfce7;
+            background: #ecfdf5;
+            color: #0f172a;
+            border-bottom-left-radius: 4px;
         }
 
         .formatted-message {
@@ -533,6 +540,56 @@
             font-size: 13px;
         }
 
+        .approval-panel {
+            margin-top: 16px;
+            padding: 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
+            font-size: 13px;
+            display: none;
+        }
+
+        .approval-panel.visible {
+            display: block;
+        }
+
+        .approval-panel h4 {
+            margin: 0 0 10px 0;
+        }
+
+        .approval-panel .meta {
+            margin: 6px 0;
+            color: #334155;
+        }
+
+        .approval-panel .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .approval-panel button {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+
+        .approval-panel button.primary {
+            background: #166534;
+            color: white;
+            border-color: #166534;
+        }
+
+        .approval-panel button.secondary {
+            background: #991b1b;
+            color: white;
+            border-color: #991b1b;
+        }
+
         .policy-gate-head {
             display: flex;
             flex-wrap: wrap;
@@ -922,6 +979,11 @@
                     <li class="policy-flow-step"><span class="policy-flow-number">4</span><span>Booking<small>Not booked</small></span></li>
                 </ol>
             </div>
+        </div>
+
+        <div id="approvalPanel" class="approval-panel" aria-live="polite">
+            <h4>Approval required</h4>
+            <div class="meta">No approval request yet.</div>
         </div>
 
         <details class="policy-entry">
@@ -1375,7 +1437,7 @@ async function sendMessage() {
     document.getElementById("replanning").innerHTML = "";
 
     addMessage(
-        "👤 " + message,
+        message,
         "user"
     );
 
@@ -1414,7 +1476,6 @@ async function sendMessage() {
             renderTripMessage(data);
         } else {
             addMessage(
-                "🤖 " +
                 data.recommendation,
                 "agent"
             );
@@ -1441,6 +1502,7 @@ async function sendMessage() {
             data.policy_result,
             data.booking_gate
         );
+        renderApprovalPanel(data.booking_gate || data.policy_result && data.policy_result.approval_request ? data.booking_gate : null);
 
     } catch (err) {
 
@@ -1487,6 +1549,88 @@ function buildBookingProposal() {
     }
 
     return proposal;
+}
+
+function renderApprovalPanel(gate) {
+    const panel = document.getElementById("approvalPanel");
+    if (!gate || !gate.approval_required) {
+        panel.classList.remove("visible");
+        panel.innerHTML = `
+            <h4>Approval required</h4>
+            <div class="meta">No approval request yet.</div>
+        `;
+        return;
+    }
+
+    const approvalType = gate.approval_type || gate.approvalRequest?.approval_type || "manager";
+    const approver = gate.required_approver || "manager";
+    const tripId = (window.currentTrip && (window.currentTrip.origin || window.currentTrip.destination)) ? `${window.currentTrip.origin || "trip"}-${window.currentTrip.destination || "proposal"}` : "trip-unknown";
+    const overrideVisible = approvalType === "budget_override" ? "" : "display:none;";
+
+    panel.innerHTML = `
+        <h4>Approval required</h4>
+        <div class="meta"><strong>Type:</strong> ${escapeHtml(String(approvalType).replace(/_/g, " "))}</div>
+        <div class="meta"><strong>Approver:</strong> ${escapeHtml(String(approver))}</div>
+        <div class="meta"><strong>Message:</strong> ${escapeHtml(gate.message || "Human approval is required before booking.")}</div>
+
+        <div class="meeting-inputs" style="margin-top:10px;">
+            <label>
+                Approver name
+                <input id="approvalApproverName" type="text" value="${escapeHtml(String(approver))}" placeholder="e.g. Aisha, Finance Manager">
+            </label>
+            <label>
+                Approval reason
+                <textarea id="approvalReason" rows="3" placeholder="Explain the business justification for this approval."></textarea>
+            </label>
+            <label style="${overrideVisible}">
+                Override amount (USD)
+                <input id="approvalOverrideAmount" type="number" min="0" step="0.01" placeholder="2500.00">
+            </label>
+            <label>
+                Final decision
+                <select id="approvalFinalDecision">
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="needs_revision">Needs revision</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="actions">
+            <button type="button" class="primary" data-decision="approved" data-trip-id="${escapeHtml(tripId)}" data-approval-type="${escapeHtml(String(approvalType))}">Submit decision</button>
+        </div>
+    `;
+    panel.classList.add("visible");
+
+    panel.querySelector("button.primary").addEventListener("click", async () => {
+        const decision = document.getElementById("approvalFinalDecision").value;
+        const approver = document.getElementById("approvalApproverName").value.trim() || "unknown_approver";
+        const reason = document.getElementById("approvalReason").value.trim();
+        const overrideAmount = document.getElementById("approvalOverrideAmount");
+        const payload = {
+            trip_id: tripId,
+            approval_type: approvalType,
+            decision: decision,
+            approver: approver,
+            reason: reason,
+            override_amount: overrideAmount && overrideAmount.value ? Number(overrideAmount.value) : null,
+            notes: reason || `Decision from frontend approval panel: ${decision}`
+        };
+
+        const response = await fetch("/approval", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        panel.innerHTML = `
+            <h4>Approval status</h4>
+            <div class="meta"><strong>Decision:</strong> ${escapeHtml(data.decision || decision)}</div>
+            <div class="meta"><strong>Approver:</strong> ${escapeHtml(data.approver || approver)}</div>
+            <div class="meta"><strong>Reason:</strong> ${escapeHtml(data.reason || reason || "No reason provided.")}</div>
+            ${data.override_amount !== null && data.override_amount !== undefined ? `<div class="meta"><strong>Override amount:</strong> ${escapeHtml(String(data.override_amount))}</div>` : ""}
+        `;
+    });
 }
 
 function renderPolicyGate(policy, gate) {
