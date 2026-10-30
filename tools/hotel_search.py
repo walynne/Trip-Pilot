@@ -22,6 +22,22 @@ MOCK_CITIES = {
     "hong kong": ("Hong Kong", "HK", "HKD", 22.3193, 114.1694),
     "london": ("London", "GB", "GBP", 51.5074, -0.1278),
     "new york": ("New York", "US", "USD", 40.7128, -74.0060),
+    "tokyo": ("Tokyo", "JP", "JPY", 35.6762, 139.6503),
+    "dubai": ("Dubai", "AE", "AED", 25.2048, 55.2708),
+    "san francisco": ("San Francisco", "US", "USD", 37.7749, -122.4194),
+    "los angeles": ("Los Angeles", "US", "USD", 34.0522, -118.2437),
+}
+
+AIRPORT_TO_CITY = {
+    "HKG": "Hong Kong",
+    "SIN": "Singapore",
+    "LHR": "London",
+    "JFK": "New York",
+    "NRT": "Tokyo",
+    "TYO": "Tokyo",
+    "DXB": "Dubai",
+    "SFO": "San Francisco",
+    "LAX": "Los Angeles",
 }
 MOCK_COUNTRY_NAMES = {
     "SG": ("sg", "singapore"),
@@ -66,7 +82,12 @@ def _positive_int(value, label, maximum):
 def _resolve_mock_location(location):
     if not isinstance(location, str) or not 2 <= len(location.strip()) <= 200:
         raise ValueError("location must be a city name of 2 to 200 characters")
-    tokens = location.strip().split(",")
+
+    normalized = location.strip()
+    if normalized.upper() in AIRPORT_TO_CITY:
+        normalized = AIRPORT_TO_CITY[normalized.upper()]
+
+    tokens = normalized.split(",")
     if len(tokens) > 2 or any(not token.strip() for token in tokens):
         raise ValueError("location must be a city optionally followed by a country qualifier")
     city = tokens[0].strip().casefold()

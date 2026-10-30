@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from flask import (
@@ -31,6 +31,30 @@ AIRPORT_TIMEZONES = {
     "SIN": "Asia/Singapore",
 }
 
+HOTEL_CITY_BY_AIRPORT = {
+    "HKG": "Hong Kong",
+    "SIN": "Singapore",
+    "LHR": "London",
+    "JFK": "New York",
+    "DXB": "Dubai",
+    "NRT": "Tokyo",
+    "TYO": "Tokyo",
+    "SFO": "San Francisco",
+    "LAX": "Los Angeles",
+}
+
+
+def _normalize_hotel_destination(destination):
+    if not isinstance(destination, str):
+        return destination
+    cleaned = destination.strip()
+    if not cleaned:
+        return cleaned
+    upper_code = cleaned.upper()
+    if upper_code in HOTEL_CITY_BY_AIRPORT:
+        return HOTEL_CITY_BY_AIRPORT[upper_code]
+    return cleaned
+
 
 @app.route("/")
 def home():
@@ -48,6 +72,93 @@ def health():
     return jsonify({
         "status": "ok",
         "service": "TripPilot"
+    })
+
+
+@app.route("/research-hotels", methods=["POST"])
+def research_hotels():
+    """Look up replacement hotels when a disruption occurs before a full trip plan exists."""
+    data = request.get_json(silent=True) or {}
+    trip = data.get("trip") if isinstance(data.get("trip"), dict) else {}
+
+    destination = _normalize_hotel_destination(
+        trip.get("destination")
+        or trip.get("location")
+        or trip.get("city")
+        or data.get("destination")
+        or data.get("location")
+        or "Singapore"
+    )
+
+    check_in = (
+        trip.get("departure_date")
+        or trip.get("start_date")
+        or data.get("check_in")
+        or (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
+    )
+    check_out = (
+        trip.get("return_date")
+        or trip.get("end_date")
+        or data.get("check_out")
+        or (datetime.fromisoformat(check_in).date() + timedelta(days=2)).isoformat()
+    )
+    guests = trip.get("guests") or data.get("guests") or 2
+    rooms = trip.get("rooms") or data.get("rooms") or 1
+
+    try:
+        result = HotelSearchTool(provider="mock").search_hotels(
+            destination,
+            check_in,
+            check_out,
+            guests=guests,
+            rooms=rooms,
+        )
+    except (ValueError, TypeError) as exc:
+        return jsonify({
+            "error": str(exc),
+            "hotel": {"status": "unavailable", "options": [], "recommended": {}},
+            "summary": {"destination": destination, "departure_date": check_in, "return_date": check_out, "guests": guests, "rooms": rooms},
+        }), 400
+
+    hotels = result.get("hotels", [])
+    options = []
+    for hotel in hotels:
+        pricing = hotel.get("pricing") or {}
+        options.append({
+            "id": hotel.get("hotel_id"),
+            "name": hotel.get("name"),
+            "city": hotel.get("city") or destination,
+            "price_per_night": pricing.get("room_nightly_rate"),
+            "total_price": pricing.get("total"),
+            "currency": pricing.get("currency") or result.get("currency", "USD"),
+            "rating": hotel.get("hotel_tier"),
+            "availability_status": hotel.get("availability_status"),
+            "preferred_supplier": hotel.get("preferred_supplier"),
+        })
+
+    recommended = options[0] if options else {}
+    recommendation = (
+        f"Found {len(options)} alternative hotels in {destination}. "
+        f"The best match is {recommended.get('name', 'a nearby hotel')} "
+        f"at {recommended.get('currency', 'USD')} {recommended.get('price_per_night', 'n/a')} per night."
+        if options
+        else f"No hotel alternatives were found for {destination}."
+    )
+
+    return jsonify({
+        "recommendation": recommendation,
+        "hotel": {
+            "status": result.get("status", "success"),
+            "options": options,
+            "recommended": recommended,
+        },
+        "summary": {
+            "destination": destination,
+            "departure_date": check_in,
+            "return_date": check_out,
+            "guests": guests,
+            "rooms": rooms,
+        },
     })
 
 
@@ -472,8 +583,24 @@ def simulate_disruption():
                     "code": error.code,
                 }), 400
 
+            monitor_result = (
+                trip_agent.monitor.analyse(
+                    trip,
+                    event
+                )
+            )
+
+            replan_result = (
+                trip_agent.replanner.replan(
+                    trip,
+                    event
+                )
+            )
+
             return jsonify({
                 "event": event,
+                "monitor_result": monitor_result,
+                "replan_result": replan_result,
                 "human_decision_required": True,
             })
 
