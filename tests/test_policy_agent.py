@@ -65,6 +65,8 @@ def test_hotel_over_tier_cap():
         "hotel": {"nightly_rate_usd": 380, "currency": "USD"},
     })
     assert result["violated_rules"] == ["HOTEL-RATE-T1"]
+    assert "USD 300" in result["explanation"]
+    assert "HOTEL-RATE-T1" in result["explanation"]
 
 
 def test_missing_tier():
@@ -126,4 +128,5 @@ def test_llm_failure_keeps_deterministic_explanation():
 
     assert result["status"] == "non_compliant"
     assert result["violated_rules"] == ["HOTEL-RATE-T1"]
-    assert result["explanation"] == "Violates HOTEL-RATE-T1"
+    assert "HOTEL-RATE-T1" in result["explanation"]
+    assert "USD 300" in result["explanation"]

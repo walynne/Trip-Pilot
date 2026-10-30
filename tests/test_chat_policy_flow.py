@@ -10,6 +10,134 @@ def test_business_visit_routes_to_full_trip_planning():
     assert not app_module._is_trip_plan_request("Find a flight to Tokyo")
 
 
+def test_research_hotels_route_maps_airport_codes_to_cities(monkeypatch):
+    class FakeHotelSearchTool:
+        def __init__(self, provider="mock", **kwargs):
+            self.provider = provider
+
+        def search_hotels(self, location, check_in, check_out, guests=1, rooms=1):
+            assert location == "Hong Kong"
+            return {
+                "location": location,
+                "check_in": check_in,
+                "check_out": check_out,
+                "guests": guests,
+                "rooms": rooms,
+                "currency": "USD",
+                "status": "success",
+                "hotels": [{
+                    "hotel_id": "ALT-1",
+                    "name": "Research Alternative",
+                    "pricing": {"currency": "USD", "room_nightly_rate": "125.00", "total": "250.00"},
+                }],
+                "result_count": 1,
+            }
+
+    monkeypatch.setattr(app_module, "HotelSearchTool", FakeHotelSearchTool)
+
+    response = app_module.app.test_client().post(
+        "/research-hotels",
+        json={"trip": {"destination": "HKG"}, "guests": 2, "rooms": 1},
+    )
+
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["summary"]["destination"] == "Hong Kong"
+    assert result["hotel"]["options"][0]["name"] == "Research Alternative"
+
+
+def test_research_hotels_route_works_for_partial_trip(monkeypatch):
+    class FakeHotelSearchTool:
+        def __init__(self, provider="mock", **kwargs):
+            self.provider = provider
+
+        def search_hotels(self, location, check_in, check_out, guests=1, rooms=1):
+            return {
+                "location": location,
+                "check_in": check_in,
+                "check_out": check_out,
+                "guests": guests,
+                "rooms": rooms,
+                "currency": "USD",
+                "status": "success",
+                "hotels": [{
+                    "hotel_id": "ALT-1",
+                    "name": "Research Alternative",
+                    "pricing": {"currency": "USD", "room_nightly_rate": "125.00", "total": "250.00"},
+                }],
+                "result_count": 1,
+            }
+
+    monkeypatch.setattr(app_module, "HotelSearchTool", FakeHotelSearchTool)
+
+    response = app_module.app.test_client().post(
+        "/research-hotels",
+        json={"trip": {"destination": "Singapore"}, "guests": 2, "rooms": 1},
+    )
+
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["hotel"]["status"] == "success"
+    assert result["hotel"]["options"][0]["name"] == "Research Alternative"
+    assert result["summary"]["destination"] == "Singapore"
+
+
+def test_hotel_unavailable_simulation_returns_monitor_and_replan_payload(monkeypatch):
+    class FakeMonitor:
+        def analyse(self, trip, event):
+            return {"severity": "HIGH", "message": "Hotel risk detected"}
+
+    class FakeReplanner:
+        def replan(self, trip, event):
+            return {
+                "replanned": True,
+                "recommendation": "Find a replacement hotel near the meeting location.",
+                "alternative_flights": [],
+            }
+
+    class FakeTripAgent:
+        monitor = FakeMonitor()
+        replanner = FakeReplanner()
+
+    class FakeDisruptionSimulator:
+        def simulate(self, scenario, context):
+            return {
+                "type": "HOTEL_UNAVAILABLE",
+                "severity": "HIGH",
+                "message": "Simulated hotel unavailability.",
+                "affected_trip": {
+                    "hotel": {
+                        "hotel_id": "H-100",
+                        "location": "Singapore",
+                        "check_in": "2026-11-15",
+                        "check_out": "2026-11-17",
+                        "nights": 2,
+                        "guests": 2,
+                        "rooms": 1,
+                    }
+                },
+            }
+
+    monkeypatch.setattr(app_module, "trip_agent", FakeTripAgent())
+    monkeypatch.setattr(app_module, "DisruptionSimulator", FakeDisruptionSimulator)
+
+    response = app_module.app.test_client().post(
+        "/simulate-disruption",
+        json={
+            "trip": {"origin": "HKG", "destination": "SIN"},
+            "scenario": "hotel_unavailable",
+            "context": {"trip_id": "demo-trip", "hotel": {"hotel_id": "H-100", "location": "Singapore", "check_in": "2026-11-15", "check_out": "2026-11-17", "guests": 2, "rooms": 1}},
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["event"]["type"] == "HOTEL_UNAVAILABLE"
+    assert result["monitor_result"]["message"] == "Hotel risk detected"
+    assert result["replan_result"]["replanned"] is True
+    assert result["human_decision_required"] is True
+
+
 def test_chat_forwards_booking_proposal_to_trip_agent(monkeypatch):
     proposal = {
         "flight": {"cabin": "economy", "duration_hours": 4},

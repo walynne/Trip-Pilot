@@ -75,11 +75,8 @@ class HotelService:
         if not isinstance(result, dict):
             return self._fallback_to_demo(location, check_in, check_out, guests, rooms, self.provider)
 
-        if self.provider != "mock" and result.get("status") == "no_results":
-            return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
-
-        if self.provider != "mock" and result.get("status") == "no_results":
-            return self._fallback_to_mock(location, check_in, check_out, guests, rooms, self.provider)
+        if result.get("status") in {"success", "no_results"}:
+            return self._normalize_result(result)
 
         return self._normalize_result(result)
 
@@ -93,7 +90,7 @@ class HotelService:
             "check_out": check_out,
             "guests": guests,
             "rooms": rooms,
-            "provider": "demo",
+            "provider": "mock",
             "data_mode": "mock",
             "live_provider_fallback": failed_provider,
             "status": "success",

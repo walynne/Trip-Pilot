@@ -205,6 +205,46 @@ def test_hotel_service_price_spike_scenario():
     assert result["mock_scenario"] == "price_spike"
 
 
+def test_hotel_service_keeps_live_no_results_without_mock_fallback(monkeypatch):
+    """A live provider response with no matches should stay live and not be replaced by demo data."""
+    service = HotelService(provider="serpapi")
+
+    def return_no_results(*args, **kwargs):
+        return {
+            "status": "no_results",
+            "provider": "google_hotels",
+            "data_mode": "live",
+            "location": "Singapore",
+            "country_code": "SG",
+            "check_in": "2026-11-03",
+            "check_out": "2026-11-04",
+            "nights": 1,
+            "guests": 1,
+            "rooms": 1,
+            "currency": "SGD",
+            "hotels": [],
+            "result_count": 0,
+            "retrieved_at": "2026-11-01T12:00:00Z",
+        }
+
+    monkeypatch.setattr(service.tool, "search_hotels", return_no_results)
+
+    result = service.search_hotels(
+        location="Singapore",
+        check_in="2026-11-03",
+        check_out="2026-11-04",
+        guests=1,
+        rooms=1,
+    )
+
+    assert result["status"] == "no_results"
+    assert result["provider"] == "google_hotels"
+    assert result["data_mode"] == "live"
+    assert result["is_live"] is True
+    assert result["result_count"] == 0
+    assert result["hotels"] == []
+
+
 def test_hotel_service_falls_back_to_mock_on_live_provider_error(monkeypatch):
     """Live provider failures should still return a valid mock alternative set."""
     service = HotelService(provider="serpapi")
