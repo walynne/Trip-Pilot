@@ -79,31 +79,24 @@
 
         .message {
 
-            padding: 12px 14px;
+            padding: 12px;
 
-            border-radius: 16px;
+            border-radius: 10px;
 
             margin-bottom: 10px;
 
             white-space: pre-wrap;
             line-height: 1.5;
-            max-width: 78%;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
 
         .user {
 
-            background: #2563eb;
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
+            background: #dbeafe;
         }
 
         .agent {
 
-            background: #ecfdf5;
-            color: #0f172a;
-            border-bottom-left-radius: 4px;
+            background: #dcfce7;
         }
 
         .formatted-message {
@@ -283,173 +276,6 @@
             background: white;
         }
 
-        .trip-plan-card {
-            border: 1px solid #bfdbfe;
-            border-radius: 12px;
-            padding: 12px;
-            background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
-            margin-bottom: 10px;
-        }
-
-        .trip-plan-card h4 {
-            margin: 0 0 10px 0;
-            font-size: 15px;
-        }
-
-        .trip-plan-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .trip-plan-item {
-            background: #f8fafc;
-            border: 1px solid #dbeafe;
-            border-radius: 8px;
-            padding: 8px;
-        }
-
-        .trip-plan-label {
-            display: block;
-            font-size: 11px;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 4px;
-        }
-
-        .trip-plan-value {
-            color: #0f172a;
-            font-weight: 600;
-            word-break: break-word;
-        }
-
-        .trip-plan-badge {
-            display: inline-block;
-            margin-left: 8px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .trip-plan-badge.low {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .trip-plan-badge.moderate {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .trip-plan-badge.high {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .trip-plan-badge.info {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-
-        .trip-plan-list {
-            list-style: none;
-            margin: 10px 0 0 0;
-            padding: 0;
-            color: #334155;
-        }
-
-        .trip-plan-list li {
-            position: relative;
-            padding-left: 16px;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        .trip-plan-list li::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 8px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #2563eb;
-        }
-
-        .trip-plan-section {
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 1px solid #dbeafe;
-        }
-
-        .trip-plan-section h5,
-        .recommendation-section h5 {
-            margin: 0 0 8px;
-            font-size: 13px;
-        }
-
-        .trip-detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 4px 12px;
-        }
-
-        .trip-detail-item {
-            min-width: 0;
-            padding: 5px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .trip-detail-label {
-            display: block;
-            color: #475569;
-            font-size: 11px;
-            text-transform: uppercase;
-        }
-
-        .trip-detail-value {
-            color: #0f172a;
-            font-size: 13px;
-            font-weight: 600;
-            overflow-wrap: anywhere;
-        }
-
-        .trip-alternatives {
-            margin: 8px 0 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .trip-alternatives li {
-            padding: 8px 0;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .trip-options > summary {
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .trip-options[open] > summary {
-            margin-bottom: 10px;
-        }
-
-        .recommendation-section.trip-options > summary {
-            font-size: 15px;
-        }
-
-        .trip-weather-meta {
-            display: block;
-            margin-top: 4px;
-            color: #475569;
-            font-size: 12px;
-        }
-
         .monitor-card {
 
             background: #fff7ed;
@@ -474,214 +300,6 @@
             border-radius: 6px;
 
             margin-bottom: 10px;
-        }
-
-        .policy-entry {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background: #f8fafc;
-        }
-
-        .policy-entry summary {
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .policy-fields {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .policy-field {
-            min-width: 0;
-            font-size: 12px;
-            color: #334155;
-        }
-
-        .policy-field.full {
-            grid-column: 1 / -1;
-        }
-
-        .policy-field input,
-        .policy-field select {
-            width: 100%;
-            min-width: 0;
-            margin-top: 4px;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            background: white;
-        }
-
-        .policy-toggle {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 13px;
-        }
-
-        .policy-note,
-        .policy-empty {
-            color: #475569;
-            font-size: 12px;
-            line-height: 1.45;
-        }
-
-        .policy-gate-card {
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background: white;
-            font-size: 13px;
-        }
-
-        .approval-panel {
-            margin-top: 16px;
-            padding: 12px;
-            border: 1px solid #fbbf24;
-            border-radius: 8px;
-            background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
-            font-size: 13px;
-            display: none;
-        }
-
-        .approval-panel.visible {
-            display: block;
-        }
-
-        .approval-panel h4 {
-            margin: 0 0 10px 0;
-        }
-
-        .approval-panel .meta {
-            margin: 6px 0;
-            color: #334155;
-        }
-
-        .approval-panel .actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .approval-panel button {
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background: white;
-            padding: 8px 10px;
-            cursor: pointer;
-        }
-
-        .approval-panel button.primary {
-            background: #166534;
-            color: white;
-            border-color: #166534;
-        }
-
-        .approval-panel button.secondary {
-            background: #991b1b;
-            color: white;
-            border-color: #991b1b;
-        }
-
-        .policy-gate-head {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .policy-badge {
-            display: inline-block;
-            padding: 4px 7px;
-            border-radius: 4px;
-            font-weight: 700;
-        }
-
-        .policy-badge.state-ok {
-            color: #166534;
-            background: #dcfce7;
-        }
-
-        .policy-badge.state-warn {
-            color: #854d0e;
-            background: #fef9c3;
-        }
-
-        .policy-badge.state-blocked {
-            color: #991b1b;
-            background: #fee2e2;
-        }
-
-        .policy-flow {
-            display: grid;
-            gap: 0;
-            margin: 10px 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .policy-flow-step {
-            display: grid;
-            grid-template-columns: 22px minmax(0, 1fr);
-            gap: 8px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .policy-flow-step:last-child {
-            border-bottom: 0;
-        }
-
-        .policy-flow-number {
-            display: grid;
-            width: 20px;
-            height: 20px;
-            place-items: center;
-            border-radius: 50%;
-            background: #e2e8f0;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .policy-flow-step.state-ok .policy-flow-number {
-            color: white;
-            background: #15803d;
-        }
-
-        .policy-flow-step.state-warn .policy-flow-number {
-            color: #713f12;
-            background: #fde047;
-        }
-
-        .policy-flow-step.state-blocked .policy-flow-number {
-            color: white;
-            background: #b91c1c;
-        }
-
-        .policy-flow-step small {
-            display: block;
-            margin-top: 2px;
-            color: #475569;
-            overflow-wrap: anywhere;
-        }
-
-        .policy-details {
-            margin-top: 8px;
-            color: #334155;
-            font-size: 12px;
-            overflow-wrap: anywhere;
-        }
-
-        .policy-details p {
-            margin: 5px 0;
         }
         .alert-card {
 
@@ -747,86 +365,6 @@
 
     margin-bottom: 15px;
 }
-
-        .decision-card {
-            border: 1px solid #d1d5db;
-            border-left: 4px solid #b45309;
-            background: #fff;
-            padding: 16px;
-            margin: 12px 0;
-        }
-
-        .decision-facts {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px 16px;
-            margin: 14px 0;
-        }
-
-        .decision-fact span {
-            display: block;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .decision-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 14px;
-        }
-
-        .decision-actions button {
-            border: 1px solid #64748b;
-            background: #fff;
-            border-radius: 4px;
-            padding: 9px 12px;
-        }
-
-        .decision-actions button:hover,
-        .decision-actions button:focus-visible {
-            background: #f1f5f9;
-        }
-
-        .decision-response {
-            margin-top: 12px;
-            font-weight: 600;
-        }
-
-        .meeting-inputs {
-            display: grid;
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .meeting-inputs label {
-            display: grid;
-            gap: 4px;
-            font-size: 13px;
-        }
-
-        .meeting-inputs input {
-            width: 100%;
-            padding: 8px;
-        }
-
-        .budget-inputs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .budget-inputs label {
-            display: grid;
-            gap: 4px;
-            font-size: 13px;
-        }
-
-        .budget-inputs input {
-            width: 100%;
-            padding: 8px;
-        }
 
 .rebook-header {
 
@@ -912,18 +450,11 @@
 
             .container {
                 flex-direction: column;
-                height: auto;
-                min-height: calc(100vh - 80px);
             }
 
             .sidebar {
                 width: 100%;
                 height: 350px;
-                flex: 0 0 350px;
-            }
-
-            .main {
-                min-height: 55vh;
             }
         }
 
@@ -960,88 +491,6 @@
         <div id="flights"></div>
 
         <h3 class="section-title">
-            Trip Plan
-        </h3>
-
-        <div id="tripPlan"></div>
-
-        <h3 class="section-title">
-            Policy Gate
-        </h3>
-
-        <div id="policyGate" aria-live="polite">
-            <div class="policy-gate-card">
-                <p class="policy-empty">No policy proposal evaluated.</p>
-                <ol class="policy-flow">
-                    <li class="policy-flow-step"><span class="policy-flow-number">1</span><span>Proposal<small>Waiting for trip facts</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">2</span><span>Policy<small>Not evaluated</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">3</span><span>Approval<small>Not recorded</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">4</span><span>Booking<small>Not booked</small></span></li>
-                </ol>
-            </div>
-        </div>
-
-        <div id="approvalPanel" class="approval-panel" aria-live="polite">
-            <h4>Approval required</h4>
-            <div class="meta">No approval request yet.</div>
-        </div>
-
-        <details class="policy-entry">
-            <summary>Policy check inputs</summary>
-            <label class="policy-toggle">
-                <input type="checkbox" id="includePolicyCheck">
-                Also include these facts with flight-search requests
-            </label>
-            <p class="policy-note">Every trip plan runs a policy check automatically. Complete the USD trip total, hotel nightly rate, and city tier to verify policy limits. Missing facts block clearance; no reservation is created.</p>
-            <div class="policy-fields">
-                <label class="policy-field">
-                    Traveler role
-                    <select id="policyRole">
-                        <option value="">Select role</option>
-                        <option value="manager">Manager</option>
-                        <option value="director">Director</option>
-                        <option value="ceo">CEO</option>
-                    </select>
-                </label>
-                <label class="policy-field">
-                    City tier
-                    <select id="policyCityTier">
-                        <option value="">Select tier</option>
-                        <option value="1">Tier 1</option>
-                        <option value="2">Tier 2</option>
-                        <option value="3">Tier 3</option>
-                    </select>
-                </label>
-                <label class="policy-field">
-                    Cabin
-                    <select id="policyCabin">
-                        <option value="">Select cabin</option>
-                        <option value="economy">Economy</option>
-                        <option value="premium_economy">Premium economy</option>
-                        <option value="business">Business</option>
-                    </select>
-                </label>
-                <label class="policy-field">
-                    Flight duration (hours)
-                    <input id="policyDuration" type="number" min="0.1" step="0.1" inputmode="decimal">
-                </label>
-                <label class="policy-field full">
-                    Total trip cost (USD)
-                    <input id="policyTotalUsd" type="number" min="0.01" step="0.01" inputmode="decimal">
-                </label>
-                <label class="policy-field">
-                    Hotel per night (USD, optional)
-                    <input id="policyHotelUsd" type="number" min="0" step="0.01" inputmode="decimal">
-                </label>
-                <label class="policy-field">
-                    Meals (USD, optional)
-                    <input id="policyMealsUsd" type="number" min="0" step="0.01" inputmode="decimal">
-                </label>
-            </div>
-            <p class="policy-note">A policy pass is not approval or a reservation. This page does not book or pay for flights.</p>
-        </details>
-
-        <h3 class="section-title">
             Monitoring
         </h3>
 
@@ -1059,7 +508,7 @@
 
         <div class="controls">
 
-            <select id="scenario" onchange="toggleDisruptionFields()">
+            <select id="scenario">
 
                 <option value="delay">
                     Flight Delay
@@ -1067,18 +516,6 @@
 
                 <option value="cancel">
                     Flight Cancellation
-                </option>
-
-                <option value="hotel_unavailable">
-                    Hotel Unavailable
-                </option>
-
-                <option value="meeting_time_changed">
-                    Meeting Time Changed
-                </option>
-
-                <option value="budget_reduced">
-                    Budget Reduced
                 </option>
 
                 <option value="weather">
@@ -1091,36 +528,6 @@
 
             </select>
 
-        </div>
-
-        <div id="meetingDisruptionFields" class="meeting-inputs" hidden>
-            <label>
-                Meeting ID
-                <input id="disruptionMeetingId" type="text" maxlength="200" placeholder="Enter meeting ID">
-            </label>
-            <label>
-                Current start (ISO-8601 with UTC offset)
-                <input id="disruptionMeetingOriginal" type="text" maxlength="200" placeholder="2026-11-16T09:00:00+08:00">
-            </label>
-            <label>
-                Proposed start (ISO-8601 with UTC offset)
-                <input id="disruptionMeetingNew" type="text" maxlength="200" placeholder="2026-11-16T14:00:00+08:00">
-            </label>
-        </div>
-
-        <div id="budgetDisruptionFields" class="budget-inputs" hidden>
-            <label>
-                Currency
-                <input id="disruptionBudgetCurrency" type="text" maxlength="3" value="USD" placeholder="USD">
-            </label>
-            <label>
-                Current budget
-                <input id="disruptionBudgetOriginal" type="text" inputmode="decimal" maxlength="15" placeholder="2500.00">
-            </label>
-            <label>
-                Reduced budget
-                <input id="disruptionBudgetNew" type="text" inputmode="decimal" maxlength="15" placeholder="1800.00">
-            </label>
         </div>
 
         <div class="controls">
@@ -1165,7 +572,6 @@
                 placeholder="Ask TripPilot anything...">
 
             <button
-                id="sendButton"
                 onclick="sendMessage()">
 
                 Send
@@ -1181,7 +587,6 @@
 <script>
 
 window.currentTrip = null;
-window.currentHotel = null;
 
 function addMessage(text, type) {
 
@@ -1433,24 +838,12 @@ async function sendMessage() {
         return;
     }
 
-    document.getElementById("monitoring").innerHTML = "";
-    document.getElementById("replanning").innerHTML = "";
-
     addMessage(
-        message,
+        "👤 " + message,
         "user"
     );
 
     input.value = "";
-
-    const payload = {
-        message: message
-    };
-
-    const isTripPlanRequest = /\b(plan a trip|plan trip|trip plan|itinerary|travel schedule)\b/i.test(message);
-    if (document.getElementById("includePolicyCheck").checked || isTripPlanRequest) {
-        payload.booking_proposal = buildBookingProposal();
-    }
 
     try {
 
@@ -1465,44 +858,31 @@ async function sendMessage() {
                         "application/json"
                     },
 
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        message: message
+                    })
                 }
             );
 
         const data =
             await response.json();
 
-        if (data && (data.summary || data.hotel || data.weather || data.schedule)) {
-            renderTripMessage(data);
-        } else {
-            addMessage(
-                data.recommendation,
-                "agent"
-            );
-        }
+        addMessage(
+            "🤖 " +
+            data.recommendation,
+            "agent"
+        );
 
         window.currentTrip =
             data.trip_details;
-        window.currentHotel =
-            data.hotel?.recommended || null;
 
         renderSteps(
             data.agent_steps || []
         );
 
         renderFlights(
-            Array.isArray(data.flights)
-                ? data.flights
-                : data.flights?.options || []
+            data.flights || []
         );
-
-        renderTripPlan(data);
-
-        renderPolicyGate(
-            data.policy_result,
-            data.booking_gate
-        );
-        renderApprovalPanel(data.booking_gate || data.policy_result && data.policy_result.approval_request ? data.booking_gate : null);
 
     } catch (err) {
 
@@ -1511,227 +891,6 @@ async function sendMessage() {
             "agent"
         );
     }
-}
-
-function readOptionalNumber(id) {
-    const raw = document.getElementById(id).value.trim();
-    if (!raw) {
-        return null;
-    }
-
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : null;
-}
-
-function buildBookingProposal() {
-    const cityTier = document.getElementById("policyCityTier").value;
-    const proposal = {
-        traveler_role: document.getElementById("policyRole").value || null,
-        city_tier: cityTier ? Number(cityTier) : null,
-        flight: {
-            cabin: document.getElementById("policyCabin").value || null,
-            duration_hours: readOptionalNumber("policyDuration")
-        },
-        total_cost_usd: readOptionalNumber("policyTotalUsd")
-    };
-
-    const hotelRate = readOptionalNumber("policyHotelUsd");
-    if (hotelRate !== null) {
-        proposal.hotel = {
-            nightly_rate_usd: hotelRate,
-            currency: "USD"
-        };
-    }
-
-    const meals = readOptionalNumber("policyMealsUsd");
-    if (meals !== null) {
-        proposal.meals_usd = meals;
-    }
-
-    return proposal;
-}
-
-function renderApprovalPanel(gate) {
-    const panel = document.getElementById("approvalPanel");
-    if (!gate || !gate.approval_required) {
-        panel.classList.remove("visible");
-        panel.innerHTML = `
-            <h4>Approval required</h4>
-            <div class="meta">No approval request yet.</div>
-        `;
-        return;
-    }
-
-    const approvalType = gate.approval_type || gate.approvalRequest?.approval_type || "manager";
-    const approver = gate.required_approver || "manager";
-    const tripId = (window.currentTrip && (window.currentTrip.origin || window.currentTrip.destination)) ? `${window.currentTrip.origin || "trip"}-${window.currentTrip.destination || "proposal"}` : "trip-unknown";
-    const overrideVisible = approvalType === "budget_override" ? "" : "display:none;";
-
-    panel.innerHTML = `
-        <h4>Approval required</h4>
-        <div class="meta"><strong>Type:</strong> ${escapeHtml(String(approvalType).replace(/_/g, " "))}</div>
-        <div class="meta"><strong>Approver:</strong> ${escapeHtml(String(approver))}</div>
-        <div class="meta"><strong>Message:</strong> ${escapeHtml(gate.message || "Human approval is required before booking.")}</div>
-
-        <div class="meeting-inputs" style="margin-top:10px;">
-            <label>
-                Approver name
-                <input id="approvalApproverName" type="text" value="${escapeHtml(String(approver))}" placeholder="e.g. Aisha, Finance Manager">
-            </label>
-            <label>
-                Approval reason
-                <textarea id="approvalReason" rows="3" placeholder="Explain the business justification for this approval."></textarea>
-            </label>
-            <label style="${overrideVisible}">
-                Override amount (USD)
-                <input id="approvalOverrideAmount" type="number" min="0" step="0.01" placeholder="2500.00">
-            </label>
-            <label>
-                Final decision
-                <select id="approvalFinalDecision">
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="needs_revision">Needs revision</option>
-                </select>
-            </label>
-        </div>
-
-        <div class="actions">
-            <button type="button" class="primary" data-decision="approved" data-trip-id="${escapeHtml(tripId)}" data-approval-type="${escapeHtml(String(approvalType))}">Submit decision</button>
-        </div>
-    `;
-    panel.classList.add("visible");
-
-    panel.querySelector("button.primary").addEventListener("click", async () => {
-        const decision = document.getElementById("approvalFinalDecision").value;
-        const approver = document.getElementById("approvalApproverName").value.trim() || "unknown_approver";
-        const reason = document.getElementById("approvalReason").value.trim();
-        const overrideAmount = document.getElementById("approvalOverrideAmount");
-        const payload = {
-            trip_id: tripId,
-            approval_type: approvalType,
-            decision: decision,
-            approver: approver,
-            reason: reason,
-            override_amount: overrideAmount && overrideAmount.value ? Number(overrideAmount.value) : null,
-            notes: reason || `Decision from frontend approval panel: ${decision}`
-        };
-
-        const response = await fetch("/approval", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-        panel.innerHTML = `
-            <h4>Approval status</h4>
-            <div class="meta"><strong>Decision:</strong> ${escapeHtml(data.decision || decision)}</div>
-            <div class="meta"><strong>Approver:</strong> ${escapeHtml(data.approver || approver)}</div>
-            <div class="meta"><strong>Reason:</strong> ${escapeHtml(data.reason || reason || "No reason provided.")}</div>
-            ${data.override_amount !== null && data.override_amount !== undefined ? `<div class="meta"><strong>Override amount:</strong> ${escapeHtml(String(data.override_amount))}</div>` : ""}
-        `;
-    });
-}
-
-function renderPolicyGate(policy, gate) {
-    const container = document.getElementById("policyGate");
-    if (!policy || !gate) {
-        container.innerHTML = `
-            <div class="policy-gate-card">
-                <p class="policy-empty">No policy proposal evaluated for this request.</p>
-                <ol class="policy-flow">
-                    <li class="policy-flow-step"><span class="policy-flow-number">1</span><span>Proposal<small>Waiting for trip facts</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">2</span><span>Policy<small>Not evaluated</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">3</span><span>Approval<small>Not recorded</small></span></li>
-                    <li class="policy-flow-step"><span class="policy-flow-number">4</span><span>Booking<small>Not booked</small></span></li>
-                </ol>
-            </div>
-        `;
-        return;
-    }
-
-    const policyStatus = policy.status || "error";
-    if (policyStatus === "needs_facts") {
-        document.querySelector(".policy-entry").open = true;
-    }
-    const gateLabels = {
-        awaiting_approval: "Awaiting approval",
-        blocked_by_policy: "Blocked by policy",
-        blocked_missing_facts: "Missing required facts",
-        human_review_required: "Human review required",
-        blocked_policy_error: "Policy unavailable",
-        policy_cleared_not_booked: "Policy passed, not booked"
-    };
-    const gateLabel = gateLabels[gate.status] || "Policy check returned";
-    const gateTone = policyStatus === "compliant" ? "state-ok" :
-        policyStatus === "non_compliant" || policyStatus === "error" ? "state-blocked" : "state-warn";
-    const missing = policy.missing_facts || [];
-    const violations = policy.violated_rules || [];
-    const approver = policy.required_approver;
-    const evidence = (policy.evidence || []).map(item => {
-        const section = escapeHtml(item.section || "Policy section");
-        const chunk = escapeHtml(item.chunk_id || "");
-        const references = Array.isArray(item.references) ? item.references.map(reference => {
-            const block = reference.body_block ? `block ${reference.body_block}` : "";
-            const row = reference.row ? `row ${reference.row}` : "";
-            return [block, row].filter(Boolean).map(escapeHtml).join(", ");
-        }).filter(Boolean).join("; ") : "";
-        return `<li>${section}${chunk ? ` (${chunk})` : ""}${references ? `, ${references}` : ""}</li>`;
-    }).join("");
-    const errorCode = policy.error && policy.error.code
-        ? escapeHtml(policy.error.code)
-        : "";
-    const policyVersion = policy.policy_version
-        ? escapeHtml(policy.policy_version)
-        : "";
-    const documentHash = policy.document_sha256
-        ? escapeHtml(policy.document_sha256)
-        : "";
-
-    const proposalState = missing.length ? "state-warn" : "state-ok";
-    const policyState = policyStatus === "compliant" ? "state-ok" :
-        policyStatus === "non_compliant" || policyStatus === "error" ? "state-blocked" : "state-warn";
-    const approvalText = policyStatus !== "compliant" ? "Waiting for policy outcome" :
-        approver ? `Approval required: ${approver}` : "No approver returned";
-    const approvalState = policyStatus === "compliant" && approver ? "state-warn" : "";
-    const bookingText = gate.booked ? "Booked" : "Not booked";
-
-    container.innerHTML = `
-        <div class="policy-gate-card">
-            <div class="policy-gate-head">
-                <strong>Pre-booking result</strong>
-                <span class="policy-badge ${gateTone}">${escapeHtml(gateLabel)}</span>
-            </div>
-            <ol class="policy-flow">
-                <li class="policy-flow-step ${proposalState}">
-                    <span class="policy-flow-number">1</span>
-                    <span>Proposal<small>${missing.length ? "Facts needed: " + missing.map(escapeHtml).join(", ") : "Required facts received"}</small></span>
-                </li>
-                <li class="policy-flow-step ${policyState}">
-                    <span class="policy-flow-number">2</span>
-                    <span>Policy check<small>${escapeHtml(policyStatus.replace(/_/g, " "))}${violations.length ? ": " + violations.map(escapeHtml).join(", ") : ""}</small></span>
-                </li>
-                <li class="policy-flow-step ${approvalState}">
-                    <span class="policy-flow-number">3</span>
-                    <span>Approval<small>${escapeHtml(approvalText)}</small></span>
-                </li>
-                <li class="policy-flow-step">
-                    <span class="policy-flow-number">4</span>
-                    <span>Booking<small>${bookingText}. No reservation is created.</small></span>
-                </li>
-            </ol>
-            <div class="policy-details">
-                ${policyStatus === "needs_facts" ? `<p><strong>What this means:</strong> The trip plan was returned, but policy clearance is pending until the missing facts above are supplied. No booking was made.</p>` : ""}
-                <p><strong>Policy explanation:</strong> ${escapeHtml(policy.explanation || gate.message || "No explanation returned.")}</p>
-                <p><strong>Booking status:</strong> ${escapeHtml(gate.message || "No booking status returned.")}</p>
-                ${errorCode ? `<p><strong>Policy error:</strong> ${errorCode}</p>` : ""}
-                ${policyVersion ? `<p><strong>Policy version:</strong> ${policyVersion}</p>` : `<p><strong>Policy version:</strong> Not verified</p>`}
-                ${documentHash ? `<p><strong>Source document SHA-256:</strong> <code>${documentHash}</code></p>` : ""}
-                ${evidence ? `<p>Evidence sections:</p><ul>${evidence}</ul>` : ""}
-                ${!evidence && policyStatus === "compliant" ? `<p>No retrieved evidence was attached; verify the policy source before relying on this result.</p>` : ""}
-            </div>
-        </div>
-    `;
 }
 
 function renderSteps(steps) {
@@ -1753,169 +912,6 @@ function renderSteps(steps) {
     });
 }
 
-function renderTripDetailGrid(items) {
-    const visibleItems = items.filter(item =>
-        item.value !== null && item.value !== undefined && item.value !== ""
-    );
-    if (!visibleItems.length) {
-        return '<p class="policy-empty">Details unavailable.</p>';
-    }
-
-    return `
-        <div class="trip-detail-grid">
-            ${visibleItems.map(item => `
-                <div class="trip-detail-item">
-                    <span class="trip-detail-label">${escapeHtml(item.label)}</span>
-                    <div class="trip-detail-value">${escapeHtml(String(item.value))}</div>
-                </div>
-            `).join("")}
-        </div>
-    `;
-}
-
-function renderFlightDetails(flight) {
-    if (!flight || !Object.keys(flight).length) {
-        return '<p class="policy-empty">No flight details available.</p>';
-    }
-
-    const fare = [flight.price, flight.currency].filter(value => value !== null && value !== undefined && value !== "").join(" ");
-    const originalFare = [flight.original_price, flight.original_currency].filter(value => value !== null && value !== undefined && value !== "").join(" ");
-    return renderTripDetailGrid([
-        { label: "Airline", value: flight.airline },
-        { label: "Source", value: flight.provider },
-        { label: "Fare information", value: flight.fare_note },
-        { label: "Outbound route", value: `${flight.origin || "-"} → ${flight.destination || "-"}` },
-        { label: "Departure", value: flight.departure },
-        { label: "Arrival", value: flight.arrival },
-        { label: "Outbound stops", value: flight.stops ?? 0 },
-        { label: "Fare", value: fare || null },
-        { label: "Original fare", value: originalFare || null },
-        { label: "Return route", value: flight.return_origin || flight.return_destination ? `${flight.return_origin || "-"} → ${flight.return_destination || "-"}` : null },
-        { label: "Return departure", value: flight.return_departure },
-        { label: "Return arrival", value: flight.return_arrival },
-        { label: "Return stops", value: flight.return_stops }
-    ]);
-}
-
-function renderHotelDetails(hotel, summary) {
-    if (!hotel || !Object.keys(hotel).length) {
-        return '<p class="policy-empty">No hotel details available.</p>';
-    }
-
-    const pricing = hotel.pricing || {};
-    const currency = pricing.currency || hotel.currency || "";
-    const price = value => value === null || value === undefined ? null : `${currency} ${value}`.trim();
-    const stay = pricing.night_count !== undefined
-        ? `${pricing.night_count} nights, ${pricing.room_count || summary.rooms || 1} room(s)`
-        : null;
-    const amenities = Array.isArray(hotel.amenities) ? hotel.amenities.join(", ") : null;
-
-    return renderTripDetailGrid([
-        { label: "Hotel", value: hotel.name },
-        { label: "Location", value: [hotel.city, hotel.country_code].filter(Boolean).join(", ") },
-        { label: "Stay", value: `${summary.departure_date || "-"} → ${summary.return_date || "-"}` },
-        { label: "Room and nights", value: stay },
-        { label: "Nightly rate", value: price(pricing.room_nightly_rate ?? pricing.nightly_rate) },
-        { label: "Subtotal", value: price(pricing.subtotal) },
-        { label: "Taxes", value: price(pricing.taxes) },
-        { label: "Fees", value: price(pricing.fees) },
-        { label: "Total", value: price(pricing.total) },
-        { label: "Amenities", value: amenities },
-        { label: "Cancellation", value: hotel.cancellation_policy },
-        { label: "Availability", value: hotel.availability_status }
-    ]);
-}
-
-function renderFlightAlternatives(flights) {
-    if (!Array.isArray(flights) || flights.length < 2) {
-        return '<p class="policy-empty">No alternative flights returned.</p>';
-    }
-
-    return `
-        <ul class="trip-alternatives">
-            ${flights.slice(1).map(flight => `
-                <li>
-                    <strong>${escapeHtml(flight.airline || "Flight option")}</strong>
-                    ${renderFlightDetails(flight)}
-                </li>
-            `).join("")}
-        </ul>
-    `;
-}
-
-function renderHotelSearchStatus(hotel) {
-    const messages = [];
-    if (hotel.message) messages.push(hotel.message);
-    else if (hotel.status === "no_results") messages.push("No hotels were returned for these dates.");
-    else if (hotel.status === "unavailable") messages.push(`Hotel search unavailable: ${hotel.error_code || "provider error"}.`);
-    if (hotel.data_mode === "mock") messages.push("Demo hotel data only — not live availability or bookable rates.");
-    return messages.map(message => `<p class="policy-empty">${escapeHtml(message)}</p>`).join("");
-}
-
-function renderWeatherDetails(weather) {
-    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
-    if (!forecast.length) {
-        const message = weather.message || (weather.error_code
-            ? `Weather unavailable: ${weather.error_code}.`
-            : "No weather forecast returned. Live forecasts cover only today through the next 15 days.");
-        return `<p class="policy-empty">${escapeHtml(message)}</p>`;
-    }
-    const provenance = weather.data_mode === "mock" ? "Demo weather, not a live forecast." : "Destination weather forecast";
-    return `<p>${escapeHtml(provenance)}</p><ul class="trip-plan-list">${renderScheduleItems(forecast)}</ul>`;
-}
-
-function renderHotelAlternatives(hotels, summary) {
-    if (!Array.isArray(hotels) || hotels.length < 2) {
-        return '<p class="policy-empty">No alternative hotels returned.</p>';
-    }
-
-    return `
-        <ul class="trip-alternatives">
-            ${hotels.slice(1).map(hotel => `
-                <li>
-                    <strong>${escapeHtml(hotel.name || "Hotel option")}</strong>
-                    ${renderHotelDetails(hotel, summary)}
-                </li>
-            `).join("")}
-        </ul>
-    `;
-}
-
-function renderScheduleItems(schedule) {
-    if (!Array.isArray(schedule) || !schedule.length) {
-        return "<li>No schedule available.</li>";
-    }
-
-    return schedule.map(item => {
-        const risk = String(item.risk_level || "info").toLowerCase();
-        const weather = [];
-        if (item.temperature_min_c !== undefined && item.temperature_max_c !== undefined) {
-            weather.push(`${item.temperature_min_c}–${item.temperature_max_c} °C`);
-        }
-        if (item.precipitation_probability_max !== undefined) {
-            weather.push(`Rain chance ${item.precipitation_probability_max}%`);
-        }
-        if (item.wind_speed_max_kmh !== undefined) {
-            weather.push(`Wind up to ${item.wind_speed_max_kmh} km/h`);
-        }
-        if (item.rain_sum_mm !== undefined) {
-            weather.push(`${item.rain_sum_mm} mm rain`);
-        }
-        return `
-            <li>
-                <span class="trip-plan-badge ${escapeHtml(risk)}">${escapeHtml(String(item.risk_level || "info"))}</span>
-                <strong>${escapeHtml(item.date || "Day")}: ${escapeHtml(item.condition || "Plan")}</strong>
-                <div>${escapeHtml(item.suggested_activity || "Keep a flexible day for local food, nearby sightseeing, and rest. Check opening hours and travel time before heading out.")}</div>
-                ${item.planning_note ? `<small>${escapeHtml(item.planning_note)}</small>` : ""}
-                <small>${item.activity_source === "live_search" ? "Live search suggestion" : "Offline planning advice"}${item.searched_at ? ` · Search fetched: ${escapeHtml(item.searched_at)}` : ""}</small>
-                ${item.search_message ? `<div><small>${escapeHtml(item.search_message)}</small></div>` : ""}
-                ${/^https:\/\/www\.(?:gotokyo\.org|visitsingapore\.com|google\.com)\//.test(item.source_url || "") ? `<div><a href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener noreferrer">View travel source</a></div>` : ""}
-                ${weather.length ? `<small class="trip-weather-meta">${weather.map(escapeHtml).join(" · ")}</small>` : ""}
-            </li>
-        `;
-    }).join("");
-}
-
 function renderFlights(flights) {
 
     const div =
@@ -1926,196 +922,35 @@ function renderFlights(flights) {
     div.innerHTML = "";
 
     flights.forEach(flight => {
+
         div.innerHTML += `
+
             <div class="flight-card">
-                ${renderFlightDetails(flight)}
+
+                <strong>
+                    ${flight.airline || ""}
+                </strong>
+
+                <br><br>
+
+                Price:
+                ${flight.price || ""}
+                ${flight.currency || ""}
+
+                <br>
+
+                Stops:
+                ${flight.stops || 0}
+
+                <br>
+
+                ${flight.origin || ""}
+                →
+                ${flight.destination || ""}
+
             </div>
         `;
     });
-}
-
-function renderTripPlan(data) {
-    const container = document.getElementById("tripPlan");
-    if (!data || (!data.summary && !data.hotel && !data.weather && !data.schedule && !data.recommendation)) {
-        container.innerHTML = `
-            <div class="trip-plan-card">
-                <h4>Trip plan</h4>
-                <div class="trip-plan-value">No trip-plan data available yet.</div>
-            </div>
-        `;
-        return;
-    }
-
-    const summary = data.summary || {};
-    const hotel = data.hotel || {};
-    const policyResult = data.policy_result || {};
-    const flightData = data.flights || {};
-    const flightOptions = Array.isArray(flightData) ? flightData : flightData.options || [];
-    const recommendedFlight = Array.isArray(flightData) ? flightData[0] : flightData.recommended || flightOptions[0];
-    const weather = data.weather || {};
-    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
-    const schedule = Array.isArray(data.schedule) ? data.schedule : [];
-    const hotelOptions = Array.isArray(hotel.options) ? hotel.options : [];
-    const recommendedHotel = hotel.recommended || hotelOptions[0] || {};
-    const rawHotelBudget = hotel.budget_total ?? hotel.recommended?.pricing?.total ?? "-";
-    const hotelCurrency = hotel.currency || hotel.recommended?.pricing?.currency || "";
-    const hotelBudget = rawHotelBudget === "-"
-        ? "-"
-        : `${hotelCurrency} ${Number(rawHotelBudget).toFixed(2)}`.trim();
-    const weatherRisk = forecast.length ? forecast[0].risk_level || "low" : "n/a";
-
-    container.innerHTML = `
-        <div class="trip-plan-card">
-            <h4>
-                ${escapeHtml(summary.destination || "Trip plan")}
-                <span class="trip-plan-badge ${escapeHtml(String(weatherRisk))}">${escapeHtml(String(weatherRisk))}</span>
-            </h4>
-            <div class="trip-plan-grid">
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Trip</span>
-                    <div class="trip-plan-value">${escapeHtml(summary.trip_type || "-")}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Flight</span>
-                    <div class="trip-plan-value">${escapeHtml(summary.recommended_flight || "-")}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Hotel</span>
-                    <div class="trip-plan-value">${escapeHtml(summary.recommended_hotel || hotel.recommended?.name || "-")}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Budget</span>
-                    <div class="trip-plan-value">${escapeHtml(String(hotelBudget))}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Weather</span>
-                    <div class="trip-plan-value">${escapeHtml(String(weatherRisk))}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Dates</span>
-                    <div class="trip-plan-value">${escapeHtml(summary.departure_date || "-")}${summary.return_date ? ` → ${escapeHtml(summary.return_date)}` : ""}</div>
-                </div>
-                <div class="trip-plan-item">
-                    <span class="trip-plan-label">Policy check</span>
-                    <div class="trip-plan-value">${escapeHtml(String(policyResult.status || "not checked").replace(/_/g, " "))}</div>
-                </div>
-            </div>
-            <div class="trip-plan-section">
-                <h5>Recommended flight details</h5>
-                ${renderFlightDetails(recommendedFlight)}
-            </div>
-            <div class="trip-plan-section">
-                <details class="trip-options">
-                    <summary>Other flight options (${Math.max(0, flightOptions.length - 1)})</summary>
-                ${renderFlightAlternatives(flightOptions)}
-                </details>
-            </div>
-            <div class="trip-plan-section">
-                <h5>Recommended hotel details</h5>
-                ${renderHotelSearchStatus(hotel)}
-                ${renderHotelDetails(recommendedHotel, summary)}
-            </div>
-            <div class="trip-plan-section">
-                <details class="trip-options">
-                    <summary>Other hotel options (${Math.max(0, hotelOptions.length - 1)})</summary>
-                ${renderHotelAlternatives(hotelOptions, summary)}
-                </details>
-            </div>
-            <div class="trip-plan-value" style="margin-bottom:8px;">${escapeHtml(data.recommendation || "No recommendation generated yet.")}</div>
-            <div class="trip-plan-section">
-                <h5>Weather forecast</h5>
-                ${renderWeatherDetails(weather)}
-            </div>
-            <div>
-                <strong>Schedule</strong>
-                <ul class="trip-plan-list">
-                    ${renderScheduleItems(schedule.length ? schedule : forecast)}
-                </ul>
-            </div>
-        </div>
-    `;
-}
-
-function renderTripMessage(data) {
-    const chatBox = document.getElementById("chatBox");
-    const div = document.createElement("div");
-    div.className = "message agent";
-
-    const summary = data.summary || {};
-    const hotel = data.hotel || {};
-    const policyResult = data.policy_result || {};
-    const flightData = data.flights || {};
-    const flightOptions = Array.isArray(flightData) ? flightData : flightData.options || [];
-    const recommendedFlight = Array.isArray(flightData) ? flightData[0] : flightData.recommended || flightOptions[0];
-    const weather = data.weather || {};
-    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
-    const schedule = Array.isArray(data.schedule) ? data.schedule : [];
-    const hotelOptions = Array.isArray(hotel.options) ? hotel.options : [];
-    const recommendedHotel = hotel.recommended || hotelOptions[0] || {};
-    const rawHotelBudget = hotel.budget_total ?? hotel.recommended?.pricing?.total ?? "-";
-    const hotelCurrency = hotel.currency || hotel.recommended?.pricing?.currency || "";
-    const hotelBudget = rawHotelBudget === "-"
-        ? "-"
-        : `${hotelCurrency} ${Number(rawHotelBudget).toFixed(2)}`.trim();
-    const weatherRisk = forecast.length ? forecast[0].risk_level || "low" : "n/a";
-    const items = [
-        { label: "Destination", value: summary.destination || "-" },
-        { label: "Trip", value: summary.trip_type || "-" },
-        { label: "Flight", value: summary.recommended_flight || "-" },
-        { label: "Hotel", value: summary.recommended_hotel || hotel.recommended?.name || "-" },
-        { label: "Budget", value: String(hotelBudget) },
-        { label: "Weather", value: String(weatherRisk) },
-        { label: "Policy check", value: String(policyResult.status || "not checked").replace(/_/g, " ") }
-    ];
-    const planItems = renderScheduleItems(schedule.length ? schedule : forecast);
-
-    div.innerHTML = `
-        <div class="formatted-message recommendation-layout">
-            <div class="recommendation-section primary">
-                <h3>Trip Plan <span class="trip-plan-badge ${escapeHtml(String(weatherRisk))}">${escapeHtml(String(weatherRisk))}</span></h3>
-                <div class="detail-grid">
-                    ${items.map(item => `
-                        <div class="detail-item">
-                            <span class="detail-label">${escapeHtml(item.label)}</span>
-                            <div class="detail-value">${escapeHtml(item.value)}</div>
-                        </div>
-                    `).join("")}
-                </div>
-            </div>
-            <div class="recommendation-section">
-                <h4>Recommended flight details</h4>
-                ${renderFlightDetails(recommendedFlight)}
-            </div>
-            <details class="recommendation-section trip-options">
-                <summary>Other flight options (${Math.max(0, flightOptions.length - 1)})</summary>
-                ${renderFlightAlternatives(flightOptions)}
-            </details>
-            <div class="recommendation-section">
-                <h4>Recommended hotel details</h4>
-                ${renderHotelSearchStatus(hotel)}
-                ${renderHotelDetails(recommendedHotel, summary)}
-            </div>
-            <details class="recommendation-section trip-options">
-                <summary>Other hotel options (${Math.max(0, hotelOptions.length - 1)})</summary>
-                ${renderHotelAlternatives(hotelOptions, summary)}
-            </details>
-            <div class="recommendation-section">
-                <h4>Recommendation</h4>
-                <p>${escapeHtml(data.recommendation || "No recommendation available.")}</p>
-            </div>
-            <div class="recommendation-section">
-                <h4>Suggested schedule</h4>
-                <ul class="trip-plan-list">${planItems}</ul>
-            </div>
-            <div class="recommendation-section">
-                <h4>Weather forecast</h4>
-                ${renderWeatherDetails(weather)}
-            </div>
-        </div>
-    `;
-
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function renderAlternativeFlights(
@@ -2169,9 +1004,8 @@ function renderAlternativeFlights(
 }
 
 async function simulateDisruption() {
-    const scenario = document.getElementById("scenario").value;
 
-    if (!window.currentTrip && !["meeting_time_changed", "budget_reduced"].includes(scenario)) {
+    if (!window.currentTrip) {
 
         alert(
             "Search a trip first."
@@ -2180,120 +1014,10 @@ async function simulateDisruption() {
         return;
     }
 
-    if (scenario === "hotel_unavailable") {
-        const trip = window.currentTrip || {};
-        const hotel = window.currentHotel || {};
-        const destination = trip.destination || trip.location || trip.city;
-        const hotelCitiesByAirport = {
-            HKG: "Hong Kong",
-            LHR: "London",
-            SIN: "Singapore",
-            JFK: "New York"
-        };
-        const hotelLocation = typeof destination === "string"
-            ? hotelCitiesByAirport[destination.trim().toUpperCase()] || destination
-            : destination;
-        const hotelContext = {
-            trip_id: "demo-trip",
-            hotel: {
-                hotel_id: hotel.hotel_id,
-                location: hotelLocation,
-                check_in: trip.departure_date || trip.start_date,
-                check_out: trip.return_date || trip.end_date,
-                guests: trip.guests,
-                rooms: trip.rooms
-            }
-        };
-
-        if (Object.values(hotelContext.hotel).some(value => value === undefined || value === null || value === "")) {
-            document.getElementById("monitoring").innerHTML = `
-                <div class="alert-card high">
-                    <div class="alert-title">Hotel disruption needs a complete trip plan</div>
-                    <p>Plan a trip with hotel, dates, guests, and rooms before simulating this event.</p>
-                </div>
-            `;
-            document.getElementById("replanning").innerHTML = "";
-            return;
-        }
-
-        try {
-            const response = await fetch("/simulate-disruption", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ scenario, context: hotelContext })
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || "Could not simulate hotel disruption.");
-            }
-            renderHotelDisruption(data.event);
-        } catch (error) {
-            document.getElementById("monitoring").innerHTML = `
-                <div class="alert-card high">${escapeHtml(error.message)}</div>
-            `;
-        }
-        return;
-    }
-
-    if (scenario === "meeting_time_changed") {
-        const meetingContext = {
-            trip_id: "demo-trip",
-            meeting: {
-                meeting_id: document.getElementById("disruptionMeetingId").value.trim(),
-                original_start: document.getElementById("disruptionMeetingOriginal").value.trim(),
-                new_start: document.getElementById("disruptionMeetingNew").value.trim()
-            }
-        };
-
-        try {
-            const response = await fetch("/simulate-disruption", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ scenario, context: meetingContext })
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || "Could not simulate meeting time change.");
-            }
-            renderMeetingDisruption(data.event);
-        } catch (error) {
-            document.getElementById("monitoring").innerHTML = `
-                <div class="alert-card high">${escapeHtml(error.message)}</div>
-            `;
-            document.getElementById("replanning").innerHTML = "";
-        }
-        return;
-    }
-
-    if (scenario === "budget_reduced") {
-        const budgetContext = {
-            trip_id: "demo-trip",
-            budget: {
-                currency: document.getElementById("disruptionBudgetCurrency").value.trim().toUpperCase(),
-                original_amount: document.getElementById("disruptionBudgetOriginal").value.trim(),
-                new_amount: document.getElementById("disruptionBudgetNew").value.trim()
-            }
-        };
-
-        try {
-            const response = await fetch("/simulate-disruption", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ scenario, context: budgetContext })
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || "Could not simulate budget reduction.");
-            }
-            renderBudgetDisruption(data.event);
-        } catch (error) {
-            document.getElementById("monitoring").innerHTML = `
-                <div class="alert-card high">${escapeHtml(error.message)}</div>
-            `;
-            document.getElementById("replanning").innerHTML = "";
-        }
-        return;
-    }
+    const scenario =
+        document.getElementById(
+            "scenario"
+        ).value;
 
     const response =
         await fetch(
@@ -2389,112 +1113,6 @@ async function simulateDisruption() {
 }
 }
 
-function renderHotelDisruption(event) {
-    const hotel = event.affected_trip.hotel;
-    document.getElementById("monitoring").innerHTML = `
-        <div class="alert-card high">
-            <div class="alert-header">
-                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
-            </div>
-            <div class="alert-message">${escapeHtml(event.message)}</div>
-            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only, not verified availability</div>
-            <div class="decision-facts">
-                <div class="decision-fact"><span>Hotel ID</span>${escapeHtml(hotel.hotel_id)}</div>
-                <div class="decision-fact"><span>Location</span>${escapeHtml(hotel.location)}</div>
-                <div class="decision-fact"><span>Stay</span>${escapeHtml(hotel.check_in)} to ${escapeHtml(hotel.check_out)} (${escapeHtml(hotel.nights)} nights)</div>
-                <div class="decision-fact"><span>Guests / rooms</span>${escapeHtml(hotel.guests)} / ${escapeHtml(hotel.rooms)}</div>
-            </div>
-            <div><strong>Choose the next step</strong></div>
-            <div class="decision-actions">
-                <button type="button" onclick="recordHotelDecision('Review alternative hotels')">Review alternative hotels</button>
-                <button type="button" onclick="recordHotelDecision('Keep current plan')">Keep current plan</button>
-                <button type="button" onclick="recordHotelDecision('Decide later')">Decide later</button>
-            </div>
-            <div id="hotelDecisionResponse" class="decision-response" aria-live="polite"></div>
-        </div>
-    `;
-    document.getElementById("replanning").innerHTML = "";
-}
-
-function recordHotelDecision(decision) {
-    const response = document.getElementById("hotelDecisionResponse");
-    if (response) {
-        response.textContent = `Selected: ${decision}. No booking or itinerary change was made.`;
-    }
-}
-
-function toggleDisruptionFields() {
-    const scenario = document.getElementById("scenario").value;
-    document.getElementById("meetingDisruptionFields").hidden = scenario !== "meeting_time_changed";
-    document.getElementById("budgetDisruptionFields").hidden = scenario !== "budget_reduced";
-}
-
-function renderMeetingDisruption(event) {
-    const meeting = event.affected_trip.meeting;
-    document.getElementById("monitoring").innerHTML = `
-        <div class="alert-card high">
-            <div class="alert-header">
-                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
-            </div>
-            <div class="alert-message">${escapeHtml(event.message)}</div>
-            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only; no calendar change was made</div>
-            <div class="decision-facts">
-                <div class="decision-fact"><span>Meeting ID</span>${escapeHtml(meeting.meeting_id)}</div>
-                <div class="decision-fact"><span>Current start</span>${escapeHtml(meeting.original_start)}</div>
-                <div class="decision-fact"><span>Proposed start</span>${escapeHtml(meeting.new_start)}</div>
-            </div>
-            <div><strong>Choose the next step</strong></div>
-            <div class="decision-actions">
-                <button type="button" onclick="recordMeetingDecision('Accept proposed time')">Accept proposed time</button>
-                <button type="button" onclick="recordMeetingDecision('Keep current time')">Keep current time</button>
-                <button type="button" onclick="recordMeetingDecision('Decide later')">Decide later</button>
-            </div>
-            <div id="meetingDecisionResponse" class="decision-response" aria-live="polite"></div>
-        </div>
-    `;
-    document.getElementById("replanning").innerHTML = "";
-}
-
-function recordMeetingDecision(decision) {
-    const response = document.getElementById("meetingDecisionResponse");
-    if (response) {
-        response.textContent = `Selected: ${decision}. No calendar or itinerary change was made.`;
-    }
-}
-
-function renderBudgetDisruption(event) {
-    const budget = event.affected_trip.budget;
-    document.getElementById("monitoring").innerHTML = `
-        <div class="alert-card high">
-            <div class="alert-header">
-                <span class="alert-title">${escapeHtml(event.type.replace(/_/g, " "))}</span>
-            </div>
-            <div class="alert-message">${escapeHtml(event.message)}</div>
-            <div class="alert-severity">Severity: ${escapeHtml(event.severity)} · Simulation only; no budget or approval record was changed</div>
-            <div class="decision-facts">
-                <div class="decision-fact"><span>Currency</span>${escapeHtml(budget.currency)}</div>
-                <div class="decision-fact"><span>Current budget</span>${escapeHtml(budget.original_amount)}</div>
-                <div class="decision-fact"><span>Reduced budget</span>${escapeHtml(budget.new_amount)}</div>
-            </div>
-            <div><strong>Choose the next step</strong></div>
-            <div class="decision-actions">
-                <button type="button" onclick="recordBudgetDecision('Review trip costs')">Review trip costs</button>
-                <button type="button" onclick="recordBudgetDecision('Keep current budget')">Keep current budget</button>
-                <button type="button" onclick="recordBudgetDecision('Decide later')">Decide later</button>
-            </div>
-            <div id="budgetDecisionResponse" class="decision-response" aria-live="polite"></div>
-        </div>
-    `;
-    document.getElementById("replanning").innerHTML = "";
-}
-
-function recordBudgetDecision(decision) {
-    const response = document.getElementById("budgetDecisionResponse");
-    if (response) {
-        response.textContent = `Selected: ${decision}. No budget, approval, or itinerary record was changed.`;
-    }
-}
-
 document
     .getElementById(
         "message"
@@ -2510,13 +1128,6 @@ document
             }
         }
     );
-
-document
-    .getElementById("includePolicyCheck")
-    .addEventListener("change", function() {
-        document.getElementById("sendButton").textContent =
-            this.checked ? "Check & Send" : "Send";
-    });
 
 </script>
 
