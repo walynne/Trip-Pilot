@@ -127,7 +127,7 @@ the fallback explanation exactly."""),
         elif status == "escalate":
             text = "A boundary in the policy is ambiguous. A human must decide."
         elif status == "non_compliant":
-            text = "Violates " + ", ".join(violations)
+            text = self._describe_violations(violations)
         else:
             text = f"Checked fields are within the hard limits. Required approver: {approver}."
         result = {
@@ -145,6 +145,33 @@ the fallback explanation exactly."""),
         }
         self._add_llm_explanation(result, evidence)
         return result
+
+    def _describe_violations(self, violations):
+        if not violations:
+            return "No policy violations were detected."
+
+        details = []
+        for violation in violations:
+            if violation.startswith("HOTEL-RATE-T"):
+                try:
+                    tier_number = int(violation.replace("HOTEL-RATE-T", ""))
+                    cap = HOTEL_CAP.get(tier_number)
+                    details.append(f"{violation}: hotel nightly rate is above the Tier {tier_number} USD {cap} cap.")
+                except ValueError:
+                    details.append(f"{violation}: hotel rate exceeds the policy cap.")
+            elif violation.startswith("MEAL-T"):
+                try:
+                    tier_number = int(violation.replace("MEAL-T", ""))
+                    cap = MEAL_CAP.get(tier_number)
+                    details.append(f"{violation}: meal spend exceeds the Tier {tier_number} USD {cap} cap.")
+                except ValueError:
+                    details.append(f"{violation}: meal spend exceeds the policy cap.")
+            else:
+                details.append(f"{violation}: policy limit exceeded.")
+
+        if details:
+            return "Violates " + "; ".join(details)
+        return "Violates " + ", ".join(violations)
 
     def _add_llm_explanation(self, result, evidence):
         matches = evidence.get("matches", [])
